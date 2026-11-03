@@ -46,6 +46,7 @@ export class ModRuntime {
     }catch(error){scope.dispose();if(this.loaded.get(id)===state)this.loaded.delete(id);this.changed();if(!state.cancelled)throw error;}
   }
   async unload(id,reason='disabled'){const state=this.loaded.get(id);if(!state)return;state.cancelled=true;this.loaded.delete(id);state.scope.dispose();this.emit('mod:unloaded',{id,reason,error:state.lastError});this.changed();this.invalidate();}
+  ownerOf(node){for(const state of this.loaded.values())for(const root of state.mounts??[])if(root===node||root.contains?.(node))return state.id;return null;}
   failure(id,error){const state=this.loaded.get(id);if(state){state.errors++;state.lastError=error?.stack??String(error);if(state.errors===1)this.notify(t('mod-runtime.s6cca735', { p0: id, p1: error?.message??error }),'error');if(state.errors>=5&&state.status==='loaded'){state.status='error';queueMicrotask(()=>this.unload(id,'error'));}}console.error('[mod '+id+']',error);this.changed();}
   emit(type,detail){this.events.dispatchEvent(new CustomEvent(type,{detail}));}
   tick(detail){
@@ -105,7 +106,7 @@ export class ModRuntime {
       patch:(target,key,wrapper)=>this.patch(scope,target,key,wrapper),
       timeout:(fn,ms)=>{const timer=setTimeout(scope.wrap(fn),ms);return scope.defer(()=>clearTimeout(timer));},
       interval:(fn,ms)=>{const timer=setInterval(scope.wrap(fn),ms);return scope.defer(()=>clearInterval(timer));},
-      mount:(node,parent=document.body)=>{parent.append(node);scope.defer(()=>node.remove());return node;},
+      mount:(node,parent=document.body)=>{parent.append(node);(state.mounts??=new Set()).add(node);scope.defer(()=>{state.mounts.delete(node);node.remove();});return node;},
       style:css=>{const sheet=document.createElement('style');sheet.textContent=css;document.head.append(sheet);scope.defer(()=>sheet.remove());return sheet;},
       settings:{get:key=>state.settings[key],set:async(key,value)=>{const definition=Object.hasOwn(record.manifest.settings,key)?record.manifest.settings[key]:null;if(!definition)throw Error(t('mod-runtime.s40f23f5')+key);modSettingValue(definition,value,key);await state.onSetting(key,value);},onChange:fn=>scope.listen(this.events,'settings:'+id,event=>fn(event.detail))},
       storage:{read:(fallback={})=>{try{return JSON.parse(localPreferences.getItem(storedKey))??structuredClone(fallback);}catch{return structuredClone(fallback);}},write:value=>localPreferences.setItem(storedKey,JSON.stringify(value)),clear:()=>localPreferences.removeItem(storedKey)},

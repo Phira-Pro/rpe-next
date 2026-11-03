@@ -216,6 +216,7 @@ const manualSaves = new ManualSaveQueue(storeProject);
 let editorPreferences = { ...DEFAULT_EDITOR_PREFERENCES, ...readEditorPreferences() };
 const fileOptions = () => ({ includeBackupCharts: editorPreferences.includeBackupCharts === true });
 let atHome = true;
+let homeReady = Promise.resolve();
 let hasDocument = false;
 // Set before a language switch reloads the page so the same chart reopens.
 const LOCALE_REOPEN_KEY = 'rpe-next-reopen-project';
@@ -380,7 +381,7 @@ const assetLibrary = new AssetLibraryPanel(element('#asset-library'), () => ({ a
     hitSounds.chart = session.chart; hitSounds.setAssets(assets, chartName); if (audio.playing) hitSounds.prepare().catch(reportError);
     images.load(session.chart, assets, chartName); status(t('app.s61fc662')); renderSession();
   },
-  openFolder: nativeStorage ? async (path, folder) => {
+  openFolder: nativeStorage && !globalThis.phiraEditor ? async (path, folder) => {
     if (!libraryProject || assetDirty) throw Error(t('app.s7d40547'));
     await nativeStorage.call('openAssetFolder', libraryProject.id, path, folder);
   } : undefined,
@@ -831,7 +832,7 @@ function setHome(visible) {
   element('.transport').hidden = visible;
   element('#resume-editor').hidden = !hasDocument;
   for (const selector of ['#save', '#export']) element(selector).disabled = !hasDocument;
-  if (visible) { playback.pause(); timeline.cancelPlacement(); home.refresh().catch(reportError); }
+  if (visible) { playback.pause(); timeline.cancelPlacement(); homeReady = home.refresh().catch(reportError); }
   invalidate();
 }
 
@@ -1918,7 +1919,7 @@ window.addEventListener('blur', () => {
   if (globalEvents.timeline.eventInteraction.drag?.endpoint) globalEvents.timeline.cancelPlacement();
   if (noiseEditor.drag?.endpoint) noiseEditor.cancelGesture();
 });
-window.addEventListener('keydown', async event => {
+const handleEditorCommand = async event => {
   if (mods?.runtime.locks.size) return;
   const target = event.target;
   if (atHome || !hasDocument || dialogOpen() || usesNativeTextShortcut(event)) return;
@@ -1926,7 +1927,7 @@ window.addEventListener('keydown', async event => {
   const area = globalEvents.active ? 'events' : timeline.hoverArea ?? session.focus;
   const hasMultiSelection = session.multiLineActive && ([...(session.multiLineSelection?.values() ?? [])].some(values => values.size) || [...(session.multiEventSelection?.values() ?? [])].some(values => values.size));
   const hasSelection = globalEvents.active ? globalEvents.selection.size > 0 : noiseEditor.active ? noiseEditor.selection.size > 0 : Boolean(session.selection.size || session.eventSelection.size || hasMultiSelection);
-  const action = shortcutAction(event, preferences, area, { hasSelection: hasSelection && (!preview.visible || directPlacement.active) });
+  const action = event.type === 'rpen-command' ? event.detail.action : shortcutAction(event, preferences, area, { hasSelection: hasSelection && (!preview.visible || directPlacement.active) });
   if (action === 'Esc' && (linePicker.active || directPlacement.active)) {
     if (linePicker.active) linePicker.hide(); else directPlacement.close();
     event.preventDefault(); event.stopImmediatePropagation(); return;
@@ -2017,7 +2018,9 @@ window.addEventListener('keydown', async event => {
     else handled = false;
     if (handled) { event.preventDefault(); event.stopPropagation(); }
   } catch (error) { event.preventDefault(); reportError(error); }
-}, true);
+};
+window.addEventListener('keydown', handleEditorCommand, true);
+window.addEventListener('rpen-command', handleEditorCommand);
 window.addEventListener('keyup', event => {
   if (timeline.eventEndpointDragHeld && shortcutReleased(event, preferences.hotkeys.DragLong ?? DEFAULT_HOTKEYS.DragLong)) setEventEndpointDragHeld(false);
   if (mods?.runtime.locks.size) return;
@@ -2232,6 +2235,25 @@ function applyMigratedPreferences(next) {
 
 listen('#migrate', async () => {
   const content = showDialog(t('app.sa14179a'), t('app.s0d0658f'));
+  if (globalThis.phiraEditor?.linkedMigration) {
+    const hint = document.createElement('p');
+    hint.textContent = '关联后仅保存 RPEN 谱面改动，素材读取原目录，不修改原 RPE 工程。请保留原目录；需要独立副本时可导出 PEZ。';
+    const select = document.createElement('button'); select.type = 'button'; select.className = 'primary'; select.textContent = '关联 RPE 目录（素材不复制）';
+    select.onclick = async () => {
+      select.disabled = true; select.textContent = '正在读取 RPE 目录';
+      try {
+        const selection = await globalThis.phiraEditor.linkedMigration();
+        if (selection) {
+          const plan = await scanMigration(selection.entries, selection.name, fileOptions());
+          plan.linked = true;
+          migrationDialog(plan, applyMigratedPreferences);
+        }
+      } catch (error) { reportError(error); }
+      finally { select.disabled = false; select.textContent = '关联 RPE 目录（素材不复制）'; }
+    };
+    content.append(hint, select);
+    return;
+  }
   if (window.showDirectoryPicker) {
     const select = document.createElement('button'); select.type = 'button'; select.className = 'primary'; select.textContent = t('app.s1da6c74');
     select.onclick = async () => {
@@ -2375,11 +2397,26 @@ for (const [id, key] of displayFields.filter(([, key]) => key !== 'selectionInte
 timeline.eventPlacementType = timeline.eventTypes[0];
 
 const modEditor={
+  get startupReady(){return Promise.all([homeReady,editorSkins.ready,noteSkins.ready]);},
   get session(){return session;},get chart(){return session.chart;},get tempo(){return tempo;},get assets(){return assets;},get preferences(){return preferences;},get editorPreferences(){return editorPreferences;},get chartName(){return chartName;},get agentWorkspaceId(){return versionRepoId;},
   get hasDocument(){return hasDocument&&!atHome;},get home(){return atHome;},get activePane(){return activePaneName;},
   get dirty(){return session.history.dirty||assetDirty;},get libraryProject(){return libraryProject;},get loop(){return loop;},set loop(value){loop=value;},
   audio,audioSources,audioOnsets,audioAnalysis,playback,preview,realtimePreview,timeline,skin,images,hitSounds,editorSkins,noteSkins,noiseEditor,eventSampler,trajectoryPanel,textLinesPanel,noiseFitPanel,noiseTrackingPanel,noteTrackingPanel,quickCurve,multiEdit,batchControls,linePanel,collaboration,globalEvents,globalEventRegistry,openGlobalEvents,versionControl,directPlacement,placementDefaultsPanel,diagnostics,diagnosticHighlight,
   chartSeconds,offsetSeconds,currentBeat,invalidate,render:renderSession,notify,save,activatePane,
+  async importFiles(files, { selectCandidate, metadata } = {}) {
+    noiseEditor.flush();
+    if (hasDocument && (session.history.dirty || assetDirty)) throw Error('请先保存当前工程');
+    const loaded = await openFiles(files, chartImportOptions());
+    if (!loaded) return false;
+    const index = loaded.candidates.length === 1 ? 0 : await selectCandidate?.(loaded.candidates.map(candidate => ({ name: candidate.name, title: candidate.chart.META.name ?? '' })));
+    if (index == null) return false;
+    const candidate = loaded.candidates[index];
+    if (!candidate) throw Error('请选择有效谱面');
+    if (hasDocument && (session.history.dirty || assetDirty)) throw Error('当前工程已改变，请保存后重新导入');
+    if (metadata) candidate.chart.META = { ...candidate.chart.META, ...metadata };
+    await loadCandidate(candidate, loaded.assets);
+    return true;
+  },
   commit:(label,chart)=>session.commit(label,chart),replace:(chart,name=chartName)=>replaceChart(chart,name),
   seek:(seconds,{music=false,pause=true}={})=>{playback.seek(seconds+(music?0:offsetSeconds()),pause);invalidate();},
   seekBeat,selectLine:index=>{session.selectLine(index);renderSession();},setPreview:(visible,options={})=>togglePreview(visible,options.stay??true,false,{autoplay:options.autoplay??false}),

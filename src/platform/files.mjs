@@ -81,6 +81,7 @@ const downloadNames = new DownloadNames();
 export const suggestDownloadName = name => downloadNames.suggest(name);
 
 export function download(blob, name) {
+  if (globalThis.phiraEditor?.download) return globalThis.phiraEditor.download(blob, name);
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.href = url;

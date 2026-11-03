@@ -120,6 +120,7 @@ export function createSettingsPanel({ onLocaleChange = () => {} } = {}) {
     for (const button of section.querySelectorAll(':scope > .settings-reset-detail')) button.remove();
     body.append(section);
     const defaults = detailDefaults.get(`.${section.className.split(' ')[0]}`);
+    if (!defaults) continue;
     const heading = section.querySelector('summary')?.textContent ?? t('settings.s7debf9c');
     const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'settings-reset settings-reset-detail'; reset.textContent = t('settings.sa191935');
     reset.setAttribute('aria-label', t('settings.seaff884', { p0: heading }));

@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Re:PhiEdit Next</title><link rel="stylesheet" href="./styles.css"></head>
+<html lang="zh-CN" class="pro-booting">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Re:PhiEdit Next</title><link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./pro/editor.css"><script src="./pro/bridge.js"></script><script src="./pro/boot.js" defer></script></head>
 <body>
+  <div id="pro-loading" role="status"><strong>RPEN</strong><p id="pro-loading-message">正在载入制谱器</p><div><button id="pro-loading-back" type="button">返回 Pro</button><button id="pro-loading-retry" type="button" hidden>重新加载</button><button id="pro-loading-safe" type="button" hidden>停用扩展重试</button></div></div>
   <header>
     <div class="brand"><img src="./assets/rpe/icons/rpelogo.png" alt="RPE"><span>Re:PhiEdit <small>NEXT</small></span></div>
     <div id="document-name"><span data-i18n="markup.text.0c0c8ff"></span></div>
@@ -97,5 +98,4 @@
   <div id="timeline-context-menu" class="timeline-context-menu" hidden><button id="timeline-selection-interval" type="button"><span data-i18n="markup.text.d8aa7d1"></span></button><button id="timeline-placement-defaults" type="button" data-i18n="placement-defaults.title"></button><button id="timeline-add-marker" type="button"><span data-i18n="markup.text.0898b72"></span></button><button id="trajectory-context-split" hidden><span data-i18n="markup.text.d0b8713"></span></button><button id="timeline-delete-marker" type="button"><span data-i18n="markup.text.6140fd1"></span></button></div>
   <input id="file-input" type="file" multiple accept=".json,.pec,.pez,.zip,audio/*,image/*" hidden><input id="music-input" type="file" accept="audio/*" hidden><input id="background-input" type="file" accept="image/*" hidden><input id="directory-input" type="file" webkitdirectory multiple hidden>
   <dialog id="modal"><form method="dialog"><div class="modal-heading"><h2 id="modal-title"></h2><button value="cancel" data-i18n-aria-label="markup.aria.6c14bd7" formnovalidate>×</button></div><p id="modal-description"></p><div id="modal-content"></div><p id="modal-error" role="alert"></p><div class="modal-actions"><button value="cancel" formnovalidate><span data-i18n="markup.text.f2f4d06"></span></button><button id="modal-delete" type="button" hidden><span data-i18n="markup.text.3755f56"></span></button><button id="modal-apply" type="button" class="primary"><span data-i18n="markup.text.4562024"></span></button></div></form></dialog>
-  <script type="module" src="./src/ui/app.mjs"></script>
-</body></html>
+<script type="module" src="./pro/editor.mjs"></script></body></html>

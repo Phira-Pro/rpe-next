@@ -97,8 +97,8 @@ export class StoragePanel {
     for (const project of projects) {
       const row = document.createElement('div'); row.className = 'storage-draft-row';
       const label = document.createElement('span'); label.textContent = `${project.name} · ${new Date(project.deletedAt).toLocaleString()}`;
-      const restore = document.createElement('button'); restore.textContent = t('storage-panel.s79748ca');
-      const purge = document.createElement('button'); purge.textContent = t('storage-panel.sa7fadbe');
+      const restore = document.createElement('button'); restore.type = 'button'; restore.textContent = t('storage-panel.s79748ca');
+      const purge = document.createElement('button'); purge.type = 'button'; purge.textContent = t('storage-panel.sa7fadbe');
       const act = async method => {
         restore.disabled = purge.disabled = true;
         try { await nativeStorage.call(method, project.id, project.storageRevision); row.remove(); document.dispatchEvent(new Event('rpen-library-refresh')); await this.refresh(); }
