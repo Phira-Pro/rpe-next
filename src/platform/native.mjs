@@ -2,6 +2,13 @@ import { snapshotParts } from './recovery-transfer.mjs';
 import { t } from '../i18n.mjs';
 
 const bridge = globalThis.rpenDesktopStorage?.version === 1 ? globalThis.rpenDesktopStorage : null;
+export async function largeChartCommand(action, id, value) {
+  const bridge = globalThis.rpenLargePreview;
+  if (bridge?.version !== 1) throw Error(t('large-chart.desktopRequired'));
+  const response = await bridge.call(action, id, value);
+  if (!response.ok) throw Error(response.error);
+  return response.result;
+}
 // Recreate typed errors in the renderer; contextBridge only preserves Error messages.
 export const nativeStorage = bridge ? { call: async (...args) => {
   const response = await bridge.call(...args);
@@ -73,7 +80,7 @@ export async function decodeNative(envelope, storage = nativeStorage) {
   return data;
 }
 export async function nativeAssetBytes(value) {
-  if (!(value instanceof Blob)) return value;
+  if (typeof value?.arrayBuffer !== 'function') return value;
   const bytes = new Uint8Array(await value.arrayBuffer());
   const hash = binaryCache.get(value); if (hash) binaryCache.set(bytes, hash);
   return bytes;

@@ -610,7 +610,7 @@
       }
     },
     {
-      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient)",
+      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient):not(.speed-curve-y-zoom)",
       "set": {
         "appearance": "none",
         "background": "transparent",
@@ -621,7 +621,7 @@
       }
     },
     {
-      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient)::-webkit-slider-runnable-track",
+      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient):not(.speed-curve-y-zoom)::-webkit-slider-runnable-track",
       "set": {
         "height": "4px",
         "background": "var(--rpen-ink-press)",
@@ -629,7 +629,7 @@
       }
     },
     {
-      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient)::-webkit-slider-thumb",
+      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient):not(.speed-curve-y-zoom)::-webkit-slider-thumb",
       "set": {
         "appearance": "none",
         "width": "14px",
@@ -643,14 +643,14 @@
       }
     },
     {
-      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient):hover::-webkit-slider-thumb",
+      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient):not(.speed-curve-y-zoom):hover::-webkit-slider-thumb",
       "set": {
         "background": "var(--rpen-ink-text-high)",
         "transform": "scale(1.1)"
       }
     },
     {
-      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient):focus-visible::-webkit-slider-thumb",
+      "selector": "input[type=range]:not(.line-switcher-scroll):not(.alpha-sample-gradient):not(.speed-curve-y-zoom):focus-visible::-webkit-slider-thumb",
       "set": {
         "background": "var(--rpen-ink-accent)"
       }
@@ -2192,7 +2192,7 @@
       }
     },
     {
-      "selector": ".line-texture-library,.multi-line-list,.asset-tree,.asset-details,.batch-parameters,.noise-layer-panel,.diagnose-group,.curve-presets details,.trajectory-preset-editor,.line-list-group,.multi-line-group",
+      "selector": ".line-texture-library,.multi-line-list,.multi-line-event-columns,.asset-tree,.asset-details,.batch-parameters,.noise-layer-panel,.diagnose-group,.curve-presets details,.trajectory-preset-editor,.line-list-group,.multi-line-group",
       "set": {
         "border": "1px solid var(--rpen-ink-line-soft)",
         "border-radius": "8px",
@@ -2212,7 +2212,7 @@
       }
     },
     {
-      "selector": ".line-list-group summary,.multi-line-group summary",
+      "selector": ".line-list-group summary,.multi-line-group summary,.multi-line-event-columns summary",
       "set": {
         "padding": "8px 12px",
         "background": "transparent",

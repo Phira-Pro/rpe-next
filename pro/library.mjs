@@ -1,5 +1,6 @@
 // GPL-3.0-only. Copy-only native library actions, isolated from RPEN persistence.
 import { createChartExport, resourceReferences, assetPath } from '../src/platform/files.mjs';
+import { nativePlaybackChart } from './snapshot.mjs';
 
 export async function libraryOperation(host, request, { sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), now = Date.now } = {}) {
   const { id } = await host.request('library', JSON.stringify(request));
@@ -19,7 +20,7 @@ export function copyExport(editor) {
   // Discard stale native metadata in the exported copy only. RPEN generates info.txt
   // from the current chart and resource bindings; the source assets remain intact.
   const assets = new Map([...editor.assets].filter(([name]) => !/^(?:info\.yml|info\.csv)$/i.test(name)));
-  const chart = { ...editor.chart, META: { ...editor.chart.META, useRpen: true } };
+  const chart = nativePlaybackChart(editor.chart);
   return createChartExport(chart, assets, editor.chartName, { format: 'pez', compatibility: 'next', includeUnusedFiles: true }).blob;
 }
 

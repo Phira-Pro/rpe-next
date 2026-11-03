@@ -9,6 +9,7 @@ import { installPanels } from './panels.mjs';
 import { installLibrary } from './library.mjs';
 import { installFolders } from './folders.mjs';
 import { installLinkedMigration } from './linked.mjs';
+import { nativePlaybackChart } from './snapshot.mjs';
 
 const host=globalThis.phiraEditor;
 let hostPoll;
@@ -78,7 +79,7 @@ play.querySelector('[data-start]').onclick=async()=>{
     const start=mode==='all'?0:mode==='current'?Math.max(0,editor.chartSeconds()):Number(play.querySelector('[name=start]').value);
     const end=mode==='range'?Number(play.querySelector('[name=end]').value):null;
     if(!Number.isFinite(start)||start<0||(end!==null&&(!Number.isFinite(end)||end<=start)))throw Error('请填写有效的试玩时间区间');
-    const chart={...editor.chart,META:{...editor.chart.META,useRpen:true}};
+    const chart=nativePlaybackChart(editor.chart);
     const {blob}=createChartExport(chart,editor.assets,editor.chartName,{format:'pez',compatibility:'next',includeUnusedFiles:true});
     status.textContent='正在准备试玩快照';
     const snapshot=await host.request('snapshot',blob,'application/zip');

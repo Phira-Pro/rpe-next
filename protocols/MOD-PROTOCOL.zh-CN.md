@@ -217,6 +217,8 @@ export function activate(api) {
 
 读取属性：`session/chart/tempo/assets/preferences/editorPreferences/chartName/hasDocument/home/activePane/dirty/libraryProject`。`loop` 可读写。`assets` 是路径到字节的 Map；通过 `addAsset/removeAsset` 修改可正确标记未保存。
 
+`editor.speedCurve` 是按需创建的调速曲线面板，`active` 标识是否展开，`close()` 取消未完成预览并关闭。它只修改目标线的 `speedEvents`，不修改音符 `speed`；拖拽作为单次事务进入撤销历史。“后段缓动”直接描述当前节点到下一同层节点的距离曲线（恒速为 1），切换时固定两端距离。默认判定锚点固定，真实速度节点可与其重合；模型保留 `judgment` 标记，`ref()` 优先返回真实事件引用，仅没有真实节点时返回 `edge: 'judgment'`。重合节点可修改拍数/后段缓动、拖出及删除，距离遵守判定约束；从一侧移入时保持另一侧速度，默认锚点不会被删除。末节点没有后段缓动。实现优先用原生单事件，否则每个区间最多用 64 段正时长速度事件拟合（距离误差容限 max(0.2, 两端距离差绝对值 × 0.0015)）。显式分界携带 `rpeNextSpeedCurveNode` / `rpeNextSpeedCurveEndNode`；`rpeNextDistanceCurve` 的版本 1 分组记录含 id、start/end、easing、count 和 native 形状签名，完整有效时隐藏内部拟合接点。外部改变原生事件后会重新识别。以上字段不改变事件求值或积分，未知字段保留规则适用。位置、尺寸、缩放、时间范围（相对判定拍）和吸附步长由本地偏好保存，不写入谱面。
+
 | 方法 | 用途 |
 |---|---|
 | `commit(label,chart)` | 按编辑器提交途径产生可撤销修改，传入新对象，不原地改旧历史 |
@@ -238,6 +240,8 @@ export function activate(api) {
 音频分析的 `audioSources.select(id或id数组)` 临时切换实际播放与默认分析音源，至少选择一项；`selectedIds` 返回勾选项，`resolveSelection()` 返回其混合。`audio.buffer` 始终保留原音乐，`audio.playbackBuffer` 是当前实际播放缓冲；两者不可混为保存或导出的素材。所有声部共用原音乐零点与谱面延迟，选择不进入谱面历史或设置，退出谱面恢复原音频。波形/频谱按各声部颜色分列显示，`audioOnsets` 默认分析当前混合。
 
 `editor.raw` 提供更底层入口：实时 `session/chart/assets/tempo`、`renderSession/replaceChart/activatePane/togglePlayback/togglePreview/save/applyDisplaySettings/persistEditor/setHome`。`raw.chart=` 直接替换历史当前文档并通知，**不增加撤销记录**；`raw.tempo=` 更新时间轴 TempoMap。其他内部一致性由作者负责，优先使用普通 commit。可以通过任意 DOM/Web API、内部 ES 模块、类原型与这些入口继续扩展，宿主不限制为本节列出的功能。
+
+多线表达式可包含 `all`、`@notes`、`@events`（不区分大小写），后两者按当前编辑时间视野筛选音符或当前层事件，包含跨屏 Hold 和 BPM 倍率；空格分隔词元取并集。这些词元不能作为组名。`editor.timeline.setMultiLineExpression(text)` 解析并设置表达式，之后启用多线即可动态刷新；`session.multiLineExpression` 保留表达式，`multiLineIndices` 是当前解析结果，可能为空，此时多线模式仍保持开启。手动改选线号会结束动态表达式；拖拽、框选或放置过程中保持列不变。`timeline.multiLineEventVisibility` 是按事件类型名索引的展示布尔值映射，未设置视为展示；仅影响多线事件模式，`timeline.eventTypes` 与 `eventColumnBounds()` 返回当前可见栏及坐标，隐藏栏不参与取样命中、框选和放置，不改动谱面数据。
 
 `editor.directPlacement` 是直接放置面板实例，属于进阶实现接口：`active` 表示是否展开，`open(lineIndex)` 在预览中展开当前线的音符编辑区，`close()` 关闭。它复用原 `editor.timeline` 与音符画布，通过 `timeline.noteView` 映射指针和绘制坐标，临时停用多线编辑，关闭后恢复；扩展交互应调用时间轴的 `point/noteHorizontal/notePositionAt/vertical`，不要直接用旋转后的 DOM 外接矩形换算。音符横坐标不限制在 −675～675。`beginPreviewSession()` 会先关闭直接放置和重合线列表。
 
@@ -339,3 +343,7 @@ API 1 的托管方法、清单和钩子是稳定契约；新增可选字段与�
 发布前至少验证：导入后不执行、启用及再次启用、修改快捷键、文本输入不穿透、切换谱面、撤销/重做、禁用时清理、依赖/冲突和异常恢复；自定义数据还须验证保存、重开、Next 导出及兼容导出的行为。支持桌面端的模组还应验证更新后设置继承、切换谱面库、大素材保存、冲突或写入失败时保留编辑。替换素材优先提交新的字节数组；保存仍会重新校验可变数组内容，不以对象引用相同作为素材未变化的保证。高自由度来自同页执行能力，可靠性来自模组作者对状态与恢复的完整管理。
 
 编辑器更新入口位于设置的“关于”，更新包的选择、下载、校验与程序替换由宿主负责，没有新增模组安装权限。模组应将用户数据保存至既有谱面、设置或工作区接口，不要写入程序安装目录，也不要依赖安装目录保持不变；宿主重启更新沿用正常的保存、设置写入与关闭流程。
+
+事件可包含 customEasing，具体见 ANIMATION-CURVES-PROTOCOL.zh-CN.md 和 schemas/animation-curve-v1.schema.json。提供方应使用共用 EventTrack / event-easing 求值，不能只读取 easingType。修改标准缓动须移除 customEasing；未知字段与裁切区间应保留。模组类型声明增加 AnimationCurve / CustomEventEasing。
+
+视频渲染模块创建独立 Preview，沿用 preview:before 和 onPreview 的传入 chart/seconds，payload.purpose 为 autoplay/export；离线输出不依赖真实播放头。需要包装渲染实例的扩展可从 @rpen/ui/render-extensions.mjs 导入 registerRenderExtension(attach)，attach 返回释放函数；同时保留原编辑器实例的接入。三维摄像机已使用此机制。详见 VIDEO-RENDER.zh-CN.md。

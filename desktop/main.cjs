@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, net, protocol, shell, ipcMain, safeStorage, utilityProcess, systemPreferences } = require('electron');
+const { app, BrowserWindow, dialog, net, protocol, shell, clipboard, ipcMain, safeStorage, utilityProcess, systemPreferences } = require('electron');
 const { realpath, readFile } = require('node:fs/promises');
 const { mkdirSync } = require('node:fs');
 const { resolve, sep, dirname } = require('node:path');
@@ -18,21 +18,24 @@ const smoke = process.argv.includes('--smoke-test') || smokeSettings || smokeMed
 app.setName('RePhiEdit Next');
 app.setPath('userData', (smokeNative || smokeSaving || smokeAgent || smokeAudio || smokeMapper) && process.env.RPE_NATIVE_TEST_HOME ? resolve(process.env.RPE_NATIVE_TEST_HOME) : smoke ? resolve(app.getPath('temp'), 'rpe-next-smoke-' + Date.now()) : resolve(app.getPath('appData'), 'rpe-next-desktop'));
 mkdirSync(app.getPath('userData'), { recursive: true });
+const { DesktopGraphics, installGraphics } = require('./graphics.cjs');
+const graphics = new DesktopGraphics({ app, statePath: resolve(app.getPath('userData'), 'graphics.json') });
 protocol.registerSchemesAsPrivileged([{ scheme: 'rpe', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   let mainWindow;
+  installGraphics({ ipcMain, service: graphics, window: () => mainWindow, origin, shell, clipboard });
   const cancelAgentNetwork = require('./agent-network.cjs').installAgentNetwork({ ipcMain, net, origin, window: () => mainWindow });
   require('./agent-capture.cjs').installAgentCapture({ ipcMain, origin, window: () => mainWindow });
   const stopPerformanceMonitor = require('./performance-monitor.cjs').installPerformanceMonitor({ app, ipcMain, origin, window: () => mainWindow });
   app.on('before-quit', cancelAgentNetwork);
-  let native, closing = false, relocating = false;
+  let native, largePreview, closing = false, relocating = false;
   app.on('before-quit', event => {
     if (!native || closing) return;
     event.preventDefault();
     if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.close(); return; }
-    closing = true; native.close().catch(console.error).finally(() => app.quit());
+    closing = true; Promise.all([native.close(), largePreview?.close()]).catch(console.error).finally(() => app.quit());
   });
   app.on('second-instance', () => {
     if (!mainWindow) return;
@@ -42,6 +45,11 @@ else {
   app.on('window-all-closed', () => app.quit());
   app.whenReady().then(async () => {
     const root = await realpath(resolve(__dirname, '..'));
+    const { LargeChartPreviewService, installLargeChartPreview } = await import(pathToFileURL(resolve(__dirname, 'large-chart-preview.mjs')).href);
+    largePreview = new LargeChartPreviewService(resolve(app.getPath('userData'), 'large-chart-preview.json'), {
+      progress: value => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rpen-large-preview-progress', value); },
+    });
+    installLargeChartPreview({ ipcMain, service: largePreview, window: () => mainWindow, origin, dialog, shell });
     const { DesktopUpdates, installDesktopUpdates } = await import(pathToFileURL(resolve(__dirname, 'app-update.mjs')).href);
     const { createUpdateFetcher } = await import(pathToFileURL(resolve(__dirname, 'update-network.mjs')).href);
     const updateTarget = process.platform === 'darwin' ? resolve(dirname(process.execPath), '../..') : dirname(process.execPath);
@@ -81,6 +89,8 @@ else {
     const audioOnsets = new AudioOnsetService(audioRoots.onsets, { script: resolve(__dirname, 'detect-onsets.py'), python: smokeAudio ? process.env.RPE_ONSET_TEST_PYTHON : undefined, progress: value => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rpen-audio-onsets-progress', value); } });
     audioStorage.attach('onsets', audioOnsets); if (!audioStorage.error) await audioOnsets.initialize();
     installAudioOnsets({ ipcMain, service: audioOnsets, origin, window: () => mainWindow, dialog });
+    const { installAudioPitchCache } = await import(pathToFileURL(resolve(__dirname, 'audio-pitch-cache.mjs')).href);
+    installAudioPitchCache({ ipcMain, storage: audioStorage, origin, window: () => mainWindow });
     app.on('before-quit', () => audioOnsets.close());
     const { AudioMapperService, installAudioMapper } = await import(pathToFileURL(resolve(__dirname, 'audio-mapper.mjs')).href);
     const audioMapper = new AudioMapperService(audioRoots.mapper, { script: resolve(__dirname, 'map-audio.py'), python: smokeAudio || smokeMapper ? process.env.RPE_MAPPER_TEST_PYTHON : undefined, source: smokeAudio || smokeMapper ? process.env.RPE_MAPPER_TEST_SOURCE : undefined, progress: value => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rpen-audio-mapper-progress', value); } });
@@ -91,6 +101,18 @@ else {
     const agentCredentials = new AgentCredentialVault(resolve(app.getPath('userData'), 'agent-credentials.json'), { safeStorage, writeJson: atomicJson });
     installAgentCredentials({ ipcMain, vault: agentCredentials, origin, window: () => mainWindow });
     const configPath = resolve(app.getPath('userData'), 'native-storage.json');
+    const { RenderOutputService } = require('./render-output.cjs');
+    const renderOutputs = new RenderOutputService(async name => {
+      const chosen = await dialog.showSaveDialog(mainWindow, { title: '渲染视频', defaultPath: resolve(app.getPath('videos'), name), filters: [{ name: 'Video', extensions: [name.split('.').at(-1)] }] });
+      return chosen.canceled ? null : chosen.filePath;
+    }, { openFolder: async path => { const error = await shell.openPath(path); if (error) throw Error(error); } });
+    ipcMain.handle('rpen-render-output', async (event, request) => {
+      try {
+        if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame || !event.senderFrame.url.startsWith(origin + '/')) throw Error('无权限');
+        return { ok: true, result: await renderOutputs.call(event.sender.id, request.action, request.value) };
+      } catch (error) { return { ok: false, error: error.message }; }
+    });
+    app.on('before-quit', () => { void renderOutputs.dispose(); });
     let config; try { config = JSON.parse(await readFile(configPath, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
     let nativeRoot = config?.root ?? (smoke ? resolve(app.getPath('userData'), 'Library') : resolve(app.getPath('documents'), 'RePhiEdit Next', 'Library'));
     for (;;) {
@@ -164,20 +186,22 @@ else {
       try {
         const url = new URL(request.url);
         if (url.host !== 'app' || !['GET', 'HEAD'].includes(request.method)) return new Response('Forbidden', { status: 403 });
+        if (url.pathname.startsWith('/__large-preview/')) return await largePreview.asset(request);
         if (smokeNative && url.pathname === '/__native-test-seed') return new Response('<!doctype html><html><body>Native migration fixture</body></html>', { headers: { 'Content-Type': 'text/html' } });
         const relative = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
         if (relative === 'assets/agent-source.json') {
           if (!agentSourceBundle) agentSourceBundle = import(pathToFileURL(resolve(root, 'desktop/agent-source.mjs')).href).then(module => module.createAgentSourceBundle(root)).then(bundle => JSON.stringify(bundle)).catch(error => { agentSourceBundle = null; throw error; });
           const content = await agentSourceBundle; return new Response(request.method === 'HEAD' ? null : content, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
         }
-        if (!['index.html', 'styles.css', 'protocols/MOD-PROTOCOL.zh-CN.md', 'protocols/GLOBAL-EVENTS-PROTOCOL.zh-CN.md', 'protocols/EDITOR-SKIN-PROTOCOL.zh-CN.md', 'protocols/DESKTOP-STORAGE.zh-CN.md', 'protocols/AUDIO-SEPARATION.zh-CN.md', 'schemas/editor-skin-v1.schema.json', 'schemas/editor-skin-components.v1.json', 'schemas/mod-v1.schema.json', 'schemas/mod-api-v1.d.ts'].includes(relative) && !relative.startsWith('src/') && !relative.startsWith('assets/')) return new Response('Not found', { status: 404 });
+        if (!['index.html', 'styles.css', 'protocols/MOD-PROTOCOL.zh-CN.md', 'protocols/GLOBAL-EVENTS-PROTOCOL.zh-CN.md', 'protocols/ANIMATION-CURVES-PROTOCOL.zh-CN.md', 'protocols/VIDEO-RENDER.zh-CN.md', 'protocols/EDITOR-SKIN-PROTOCOL.zh-CN.md', 'protocols/DESKTOP-STORAGE.zh-CN.md', 'protocols/AUDIO-SEPARATION.zh-CN.md', 'schemas/editor-skin-v1.schema.json', 'schemas/editor-skin-components.v1.json', 'schemas/mod-v1.schema.json', 'schemas/mod-api-v1.d.ts'].includes(relative) && !relative.startsWith('src/') && !relative.startsWith('assets/')) return new Response('Not found', { status: 404 });
         const path = await realpath(resolve(root, relative));
         if (!path.startsWith(root + sep)) return new Response('Not found', { status: 404 });
         const response = await net.fetch(pathToFileURL(path).href);
         const headers = new Headers(response.headers);
-        headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' blob:; script-src-elem 'self' blob: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob:; media-src 'self' blob: data:; connect-src ${connectSources}; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`);
+        headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' blob:${relative === 'src/platform/audio-pitch-worker.mjs' ? " 'wasm-unsafe-eval'" : ''}; script-src-elem 'self' blob: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob:; media-src 'self' blob: data:; connect-src ${connectSources}; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`);
         headers.set('X-Content-Type-Options', 'nosniff');
         if (path.endsWith('.mjs')) headers.set('Content-Type', 'text/javascript; charset=utf-8');
+        if (path.endsWith('.wasm')) headers.set('Content-Type', 'application/wasm');
         return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, headers });
       } catch { return new Response('Not found', { status: 404 }); }
     });
@@ -202,7 +226,7 @@ else {
     mainWindow.on('close', event => {
       if (preferenceFlush || mainWindow.isDestroyed()) return;
       event.preventDefault();
-      mainWindow.webContents.executeJavaScript('globalThis.rpenPrepareClose?.() ?? globalThis.rpenFlushPreferences?.()').then(() => agentCredentials.flush()).then(() => {
+      mainWindow.webContents.executeJavaScript('globalThis.rpenPrepareClose?.() ?? globalThis.rpenFlushPreferences?.()').then(() => agentCredentials.flush()).then(() => graphics.saving).then(() => {
         preferenceFlush = true; mainWindow.close();
       }).catch(error => {
         const choice = dialog.showMessageBoxSync(mainWindow, { type: 'warning', title: '设置尚未保存', message: error.message, buttons: ['继续编辑', '仍然退出'], defaultId: 0, cancelId: 0 });
@@ -210,7 +234,7 @@ else {
         else updater.cancelInstall();
       });
     });
-    const abortTokens = () => { rendererGeneration++; for (const token of tokens) native.call('abort', token).catch(() => {}); tokens.clear(); };
+    const abortTokens = () => { rendererGeneration++; for (const token of tokens) native.call('abort', token).catch(() => {}); tokens.clear(); largePreview.close().catch(console.error); void renderOutputs.dispose(); };
     mainWindow.webContents.on('render-process-gone', abortTokens);
     mainWindow.webContents.on('destroyed', abortTokens);
     mainWindow.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => { if (isMainFrame) abortTokens(); });

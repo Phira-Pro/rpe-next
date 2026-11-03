@@ -28,6 +28,10 @@
     "agent-images": ".agent-image-list",
     "placement-defaults": "#placement-defaults-panel",
     "placement-defaults-menu": "#timeline-placement-defaults",
+    "animation-curve": "#animation-curve-editor",
+    "custom-easing-templates": ".custom-easing-group",
+    "speed-curve-panel": "#speed-curve-panel",
+    "speed-curve-menu": "#timeline-speed-curve",
     "diagnostics-panel": "[data-panel=\"diagnose\"]",
     "diagnose-deep": "#diagnose-deep",
     "diagnose-target": "#diagnose-target",
@@ -65,6 +69,8 @@
     "dictation-candidate": ".dictation-candidate",
     "dictation-permission": ".dictation-permission-dialog",
     "performance-monitor": "#performance-monitor",
+    "graphics-settings": "#graphics-settings",
+    "graphics-warning": "#graphics-warning-dialog",
     "note-skin-settings": "#note-skin-settings",
     "note-skins-open": "#note-skins-open",
     "note-skin-manager": "#note-skin-modal",
@@ -148,6 +154,7 @@
     "close-global-events": "#close-global-events",
     "line-list": "#line-list",
     "multi-line-list": ".multi-line-list",
+    "multi-line-event-columns": ".multi-line-event-columns",
     "asset-tree": ".asset-tree",
     "asset-details": ".asset-details",
     "sample-bar": ".noise-sample-bar",
@@ -169,7 +176,9 @@
     "tool-tap": "[data-tool=\"1\"]",
     "tool-hold": "[data-tool=\"2\"]",
     "tool-flick": "[data-tool=\"3\"]",
-    "tool-drag": "[data-tool=\"4\"]"
+    "tool-drag": "[data-tool=\"4\"]",
+    "render-video": "#render-video",
+    "render-studio": "#rpen-render-studio"
   },
   "slots": [
     "file-actions",
@@ -551,6 +560,7 @@
     "timeline-context-menu",
     "timeline-selection-interval",
     "timeline-placement-defaults",
+    "timeline-speed-curve",
     "timeline-add-marker",
     "trajectory-context-split",
     "timeline-delete-marker",
@@ -564,7 +574,8 @@
     "modal-content",
     "modal-error",
     "modal-delete",
-    "modal-apply"
+    "modal-apply",
+    "render-video"
   ],
   "runtimeRoots": [
     "#performance-monitor",
