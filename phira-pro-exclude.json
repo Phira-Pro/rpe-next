@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "description": "Phira Pro 打包内置离线制谱器时剔除的路径；未列出的文件全部打包（本文件除外）。条目匹配同名文件，或同名目录及其下所有文件。",
+  "exclude": [
+    ".gitattributes",
+    ".github",
+    ".gitignore",
+    "README.md",
+    "collaboration-server",
+    "desktop",
+    "package-lock.json",
+    "package.json",
+    "src/dev",
+    "start.cmd",
+    "test",
+    "tools"
+  ]
+}
