@@ -6,6 +6,11 @@
 #pro-loading strong { font-size:30px;letter-spacing:3px; }
 #pro-loading p { margin:0; }
 #pro-loading button { min-height:36px;padding:6px 16px; }
+#pro-connection { position:fixed;z-index:2147483647;left:50%;bottom:40px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 24px);max-height:calc(100dvh - 48px);box-sizing:border-box;overflow:auto;padding:12px 16px;border:1px solid #a6b8d0;border-radius:8px;background:#202a38;color:#edf3fa;font:13px/1.6 system-ui,sans-serif;box-shadow:0 4px 20px #0006; }
+#pro-connection[hidden] { display:none!important; }
+#pro-connection span { min-width:0;overflow-wrap:anywhere; }
+#pro-connection button { flex:none;min-height:36px;padding:4px 10px; }
+.pro-booting body > #pro-connection { visibility:visible!important;opacity:1!important;pointer-events:auto!important; }
 .pro-closing body { opacity:0;transition:opacity 180ms ease;pointer-events:none; }
 .pro-panel-toggle { display:none!important; }
 .pro-panel-dock { display:none; }

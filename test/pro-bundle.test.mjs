@@ -2,12 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,statSync} from 'node:fs';
 import {posix} from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {parse} from '../src/core/vendor/acorn.mjs';
 
 test('Pro bundle includes every relative module, worker and URL asset dependency', () => {
   const root = new URL('../',import.meta.url);
-  const {schema,files} = JSON.parse(readFileSync(new URL('phira-pro-bundle.json',root)));
+  const {schema,exclude} = JSON.parse(readFileSync(new URL('phira-pro-exclude.json',root)));
   assert.equal(schema,1);
+  const files = execFileSync('git',['ls-files','-z','--cached'],{cwd:root,encoding:'utf8'}).split('\0').filter(name =>
+    name && name !== 'phira-pro-exclude.json' && !exclude.some(rule => name === rule || name.startsWith(rule + '/')));
   const names = new Set(files);
   assert.equal(names.size,files.length);
   const check = (owner,name) => {
@@ -32,5 +35,5 @@ test('Pro bundle includes every relative module, worker and URL asset dependency
       }
     }
   }
-  for (const name of ['LICENSE','NOTICE','pro/editor.mjs','pro/snapshot.mjs','assets/vendor/basic-pitch/model/model.json','assets/vendor/basic-pitch/model/group1-shard1of1.bin','assets/vendor/basic-pitch/tfjs-backend-wasm.wasm','assets/vendor/basic-pitch/tfjs-backend-wasm-simd.wasm','assets/vendor/mediabunny/LICENSE.txt']) assert.ok(names.has(name),name);
+  for (const name of ['LICENSE','NOTICE','pro/editor.mjs','pro/snapshot.mjs','pro/connection.js','assets/vendor/basic-pitch/model/model.json','assets/vendor/basic-pitch/model/group1-shard1of1.bin','assets/vendor/basic-pitch/tfjs-backend-wasm.wasm','assets/vendor/basic-pitch/tfjs-backend-wasm-simd.wasm','assets/vendor/mediabunny/LICENSE.txt']) assert.ok(names.has(name),name);
 });
