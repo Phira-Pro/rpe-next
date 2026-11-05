@@ -3,7 +3,11 @@ import { localPreferences } from '../src/platform/local-preferences.mjs';
 
 const KEY = 'rpe-next-pro-panel-folds-v2';
 const topPanels = ['transport', 'tools', 'tracks'];
-export function toggleTopPanel(active, id) { return active === id ? null : id; }
+export function toggleTopPanel(open, id) {
+  const next = new Set(open);
+  if (next.has(id)) next.delete(id); else next.add(id);
+  return [...next];
+}
 const definitions = [
   ['files', 'body > header', '文件', false],
   ['transport', '.transport', '播放', true],
@@ -23,10 +27,16 @@ export function installPanels(editor) {
   const dock = document.createElement('div');dock.className='pro-panel-dock';dock.setAttribute('aria-label','编辑面板');
   document.querySelector('body > header').after(dock);
   const grouped = new Map();
-  let active = topPanels.includes(saved.active) ? saved.active : null;
+  let open = Array.isArray(saved.open) ? saved.open.filter(id => topPanels.includes(id))
+    : topPanels.includes(saved.active) ? [saved.active] : topPanels.filter(id => saved[id] === false);
   const sync = () => {
-    for(const [id,{set,shortcut}] of grouped){set(active!==id);shortcut.setAttribute('aria-expanded',String(active===id));}
-    dock.hidden=Boolean(active)||workspace.hidden;
+    for(const [id,{set,shortcut}] of grouped){
+      const expanded = open.includes(id);
+      set(!expanded);shortcut.setAttribute('aria-expanded',String(expanded));
+      shortcut.textContent = definitions.find(entry => entry[0] === id)[2] + (expanded ? ' ▲' : ' ▼');
+      shortcut.setAttribute('aria-label', (expanded ? '收起' : '展开') + definitions.find(entry => entry[0] === id)[2] + '面板');
+    }
+    dock.hidden=workspace.hidden;
   };
   for (const [id, selector, label, initial] of definitions) {
     const panel = document.querySelector(selector);
@@ -51,7 +61,7 @@ export function installPanels(editor) {
     set(typeof saved[id] === 'boolean' ? saved[id] : initial);
     button.onclick = () => {
       if(topPanels.includes(id)){
-        active=toggleTopPanel(active,id);saved.active=active;sync();
+        open=toggleTopPanel(open,id);saved.open=open;delete saved.active;sync();
         localPreferences.setItem(KEY,JSON.stringify(saved));resize();return;
       }
       const folded = panel.dataset.proFolded !== 'true'; set(folded);

@@ -35,7 +35,7 @@ export class TouchController {
         const [a, b] = this.points.values();
         this.gesture = { scale: this.editor.timeline.scale, distance: Math.hypot(a.x-b.x,a.y-b.y), y:(a.y+b.y)/2, time:this.editor.chartSeconds() };
       }
-      if (this.points.size >= 2 || this.mode === 'pan' || (event.target.id === 'notes' && this.mode === 'edit' && this.editor.timeline.tool)) {
+      if (this.points.size >= 2 || this.mode === 'pan' || (event.target.id === 'notes' && this.mode === 'edit' && (this.editor.timeline.tool || this.editor.timeline.pendingHold))) {
         point.deferred = true;
         event.target.setPointerCapture(event.pointerId);
         this.consume(event);
@@ -44,7 +44,6 @@ export class TouchController {
     }
     const point = this.points.get(event.pointerId);
     if (!point) return;
-    const dy = event.clientY - point.y;
     point.x = event.clientX; point.y = event.clientY;
     if (event.type === 'pointermove') {
       if (this.gesture && this.points.size >= 2) {
@@ -53,16 +52,16 @@ export class TouchController {
         for(const id of ['#y-scale','#y-scale-slider']) { const input=document.querySelector(id);if(input)input.value=this.editor.timeline.scale; }
         this.editor.seek(Math.max(0,this.gesture.time-(middle-this.gesture.y)/this.editor.timeline.scale));
         this.editor.invalidate(); this.consume(event);
-      } else if (this.mode === 'pan') { this.editor.seek(Math.max(0,this.editor.chartSeconds()+dy/this.editor.timeline.scale));this.consume(event); }
-      else if (point.deferred || this.gesture) this.consume(event);
+      } else if (point.deferred || this.gesture) this.consume(event);
       return;
     }
     if (event.type === 'pointerup' || event.type === 'pointercancel') {
       const gesture = this.gesture;
       this.points.delete(event.pointerId);
-      if (event.type === 'pointerup' && point.deferred && !gesture && this.mode === 'edit' && Math.hypot(point.x-point.startX,point.y-point.startY)<14 && point.target.id==='notes') {
-        this.editor.timeline.down(pointerWithMode(event,this.mode));
-        this.editor.timeline.up(pointerWithMode(event,this.mode));
+      if (event.type === 'pointerup' && point.deferred && !gesture && ['edit','pan'].includes(this.mode) && Math.hypot(point.x-point.startX,point.y-point.startY)<14) {
+        const interaction = point.target.id === 'notes' ? this.editor.timeline : this.editor.timeline.eventInteraction;
+        interaction.down(pointerWithMode(event,this.mode));
+        interaction.up(pointerWithMode(event,this.mode));
       } else if (this.mode === 'box' && this.editor.timeline.drag?.kind === 'rectangle') this.editor.timeline.drag.finished = true;
       if (point.deferred || gesture || this.mode === 'pan') this.consume(event);
       if (!this.points.size) this.gesture = null;

@@ -41,7 +41,7 @@ document.querySelector('header nav').append(...installLibrary({editor,host,actio
 let touch;
 const scrollButton=action('⇅',()=>touch.setMode(touch.mode==='pan'?'edit':'pan'));
 scrollButton.id='pro-touch-scroll';scrollButton.className='pro-aux-action';
-scrollButton.title='启用触控滑动编辑区域';scrollButton.setAttribute('aria-label',scrollButton.title);
+scrollButton.title='触控映射：单指放置，双指滑动或捏合缩放';scrollButton.setAttribute('aria-label',scrollButton.title);
 scrollButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 20V4m-4 4 4-4 4 4m4-4v16m-4-4 4 4 4-4"/></svg>';
 const refreshModes=()=>{scrollButton.setAttribute('aria-pressed',String(touch.mode==='pan'));document.querySelectorAll('[data-input-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.inputMode===touch.mode)));};
 touch=new TouchController(editor,refreshModes);refreshModes();

@@ -853,6 +853,7 @@ export default {
     'app.s2124d24': "The current parameters produce no intermediate notes",
     'app.s7f30a53': "Generate curve notes",
     'app.sac98de3': "Generated {p0} curve notes",
+    'help.proMobile': "Mobile touch mapping (Phira Pro)\n1. Panels: Playback, Tools and Tracks expand independently and can remain open together. Keep Playback and Tools open to alternate between audio playback and Tap, Flick, Drag or Hold placement.\n2. Notes: select a note tool, then tap the note editor with one finger. Place a Hold with two separate taps for its start and end; the end must be later than the start.\n3. Touch navigation: enable the ⇅ button. A one-finger tap still places a note. Move two fingers vertically to seek, or pinch to zoom the timeline. Two-finger gestures do not place notes. Lift both fingers before starting another single-finger action.\n4. Selection and commands: Marquee maps to Shift, Multi-select maps to Ctrl, and Edit restores ordinary touch input. Tap two corners in the same editor to confirm a marquee; multi-select toggles individual objects. Touch Commands also offers copy, paste, delete, undo and redo.\n5. Audio alignment: keep Playback and Tools expanded, and alternate playback, pause, two-finger navigation and single-finger placement. Panel states are saved; collapse individual panels when you need more editing space.",
     'app.s066b024': "Re:PhiEdit Next · Migration preview",
     'app.s87aecc9': "Ⅱ Pause",
     'app.sb410f77': "▶ Play",
