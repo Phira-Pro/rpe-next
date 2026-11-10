@@ -48,7 +48,9 @@ test('native exports carry 0.14 builtin and custom shader sources without editin
     { startTime: [0,0,1], endTime: [4,0,1], shader: '/shaders/custom.glsl' },
   ];
   const custom = new TextEncoder().encode('void main() { gl_FragColor = vec4(1.0); }');
-  const assets = new Map([['music.wav', new Uint8Array([1,2,3])], ['shaders/custom.glsl', custom]]);
+  const extra = {videos:[{path:'video.mp4',time:[0,0,1]}],fixture:true};
+  const extraBytes = new TextEncoder().encode(JSON.stringify(extra));
+  const assets = new Map([['music.wav', new Uint8Array([1,2,3])], ['shaders/custom.glsl', custom], ['extra.json',extraBytes]]);
   const before = JSON.stringify(chart), names = [...assets.keys()];
   for (const blob of [(await nativePlaybackExport(chart, assets, 'chart.json')).blob,
     await copyExport({chart, assets, chartName:'chart.json'})]) {
@@ -58,8 +60,12 @@ test('native exports carry 0.14 builtin and custom shader sources without editin
     const saved = JSON.parse(new TextDecoder().decode(files.get('chart.json')));
     assert.equal(saved.shaderEvents[0].shader, '/shaders/builtin/wave.glsl');
     assert.equal(saved.shaderEvents[1].shader, '/shaders/custom.glsl');
+    const sidecar = JSON.parse(new TextDecoder().decode(files.get('extra.json')));
+    assert.equal('effects' in sidecar, false);
+    assert.deepEqual(sidecar.videos, extra.videos); assert.equal(sidecar.fixture, true);
   }
   assert.equal(JSON.stringify(chart), before); assert.deepEqual([...assets.keys()], names);
+  assert.equal(assets.get('extra.json'), extraBytes);
 });
 
 test('native exports reject missing custom shaders before producing a package', async () => {
