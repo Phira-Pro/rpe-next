@@ -107,6 +107,7 @@ export const japaneseText = Object.freeze({
 
 export default {
   locale: 'ja-JP', label: '日本語',
+  extras: { classic: japaneseText },
   messages: {
     ...Object.fromEntries(Object.entries(enUS.messages).map(([key, value]) => [key, japaneseText[value] ?? value])),
     'settings.languageHint': '言語はこの端末に保存されます。一部の専門ツールは英語で表示されます。未保存の変更がある場合は、保存してから切り替えてください。',

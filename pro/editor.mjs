@@ -36,8 +36,8 @@ const save=async()=>{if(editor.hasDocument){await editor.save();if(editor.dirty)
 async function close(){if(busy||closed)return;setBusy(true);try{editor.pause();editor.noiseEditor.flush();await save();await globalThis.rpenPrepareClose?.();document.documentElement.classList.add('pro-closing');await new Promise(resolve=>setTimeout(resolve,matchMedia('(prefers-reduced-motion: reduce)').matches?0:200));await host.request('close','{}');closed=true;}catch(error){document.documentElement.classList.remove('pro-closing');setBusy(false);report(error);}}
 document.addEventListener('phira-editor-close',close);
 host.requestClose=close;
-const playButton=action('Pro 试玩',()=>openPlay());playButton.id='pro-play';
-const returnButton=action('返回 Pro',close);returnButton.id='pro-return';
+const playButton=action(pt('Pro 试玩'),()=>openPlay());playButton.id='pro-play';
+const returnButton=action(pt('返回 Pro'),close);returnButton.id='pro-return';
 document.querySelector('header nav').append(...installLibrary({editor,host,action,save,isBusy:()=>busy,setBusy,status,report}),playButton,returnButton);
 
 let touch;
@@ -50,12 +50,12 @@ touch=new TouchController(editor,refreshModes);refreshModes();
 const commands=document.createElement('dialog');commands.className='pro-dialog';commands.dataset.modInteractive='true';
 const commandTitle=document.createElement('h2');commandTitle.textContent=pt('触控操作');commands.append(commandTitle);
 const modes=document.createElement('div');modes.className='pro-command-grid';
-for(const [mode,label] of [['edit','编辑'],['box','框选'],['multi','多选']]){const button=action(label,()=>{touch.setMode(mode);commands.close();});button.dataset.inputMode=mode;modes.append(button);}commands.append(modes);
+for(const [mode,label] of [['edit',pt('编辑')],['box',pt('框选')],['multi',pt('多选')]]){const button=action(label,()=>{touch.setMode(mode);commands.close();});button.dataset.inputMode=mode;modes.append(button);}commands.append(modes);
 const grid=document.createElement('div');grid.className='pro-command-grid';
 const runCommand=actionName=>{const event=new CustomEvent('rpen-command',{detail:{action:actionName},cancelable:true});Object.assign(event,{key:'',code:'',ctrlKey:false,altKey:false,shiftKey:false,metaKey:false,repeat:false,isComposing:false});window.dispatchEvent(event);};
-for(const [name,label] of [['AddTap','放置音符或取点'],['AddEvent','放置事件'],['SelectAll','全选'],['Copy','复制'],['Shear','剪切'],['Paste','粘贴'],['KeepTimePaste','原时间粘贴'],['PasteMirror','镜像粘贴'],['Delete','删除选中'],['NumberMirror','数值取反'],['NumberFill','数值填充'],['PageLeft','向左微调'],['PageRight','向右微调'],['PageUp','向上微调'],['PageDown','向下微调'],['LastBeat','上一细分拍'],['NextBeat','下一细分拍'],['Undo','撤销'],['Redo','重做'],['Esc','取消当前操作']])grid.append(action(label,()=>{commands.close();runCommand(name);}));
-commands.append(grid,action('关闭',()=>commands.close()));document.body.append(commands);
-const commandButton=action('触控操作',()=>{refreshModes();commands.showModal();});commandButton.id='pro-touch-commands';
+for(const [name,label] of [['AddTap',pt('放置音符或取点')],['AddEvent',pt('放置事件')],['SelectAll',pt('全选')],['Copy',pt('复制')],['Shear',pt('剪切')],['Paste',pt('粘贴')],['KeepTimePaste',pt('原时间粘贴')],['PasteMirror',pt('镜像粘贴')],['Delete',pt('删除选中')],['NumberMirror',pt('数值取反')],['NumberFill',pt('数值填充')],['PageLeft',pt('向左微调')],['PageRight',pt('向右微调')],['PageUp',pt('向上微调')],['PageDown',pt('向下微调')],['LastBeat',pt('上一细分拍')],['NextBeat',pt('下一细分拍')],['Undo',pt('撤销')],['Redo',pt('重做')],['Esc',pt('取消当前操作')]])grid.append(action(label,()=>{commands.close();runCommand(name);}));
+commands.append(grid,action(pt('关闭'),()=>commands.close()));document.body.append(commands);
+const commandButton=action(pt('触控操作'),()=>{refreshModes();commands.showModal();});commandButton.id='pro-touch-commands';
 // Skin organization may move game-ui. Follow that button without moving it.
 const placeTouchControls=()=>{
   const slot=document.querySelector('#rpe-classic-pro-touch');
@@ -72,7 +72,7 @@ translateProUi(play);document.body.append(play);
 const playMode=play.querySelector('[name=mode]');
 const syncPlayRange=()=>{play.querySelector('.pro-range').hidden=playMode.value!=='range';};
 playMode.addEventListener('change',syncPlayRange);syncPlayRange();
-function openPlay(){if(!editor.hasDocument)throw Error('请先新建或打开一个工程');play.querySelector('[name=start]').value=Math.max(0,editor.chartSeconds()).toFixed(2);play.querySelector('[name=end]').value=editor.audio.duration?.toFixed(2)??'60';play.querySelector('.pro-warning').textContent='RPEN 的编辑工具扩展保留原有运行方式。自定义运行时效果需要 Pro 支持对应提供者。';play.showModal();}
+function openPlay(){if(!editor.hasDocument)throw Error(pt('请先新建或打开一个工程'));play.querySelector('[name=start]').value=Math.max(0,editor.chartSeconds()).toFixed(2);play.querySelector('[name=end]').value=editor.audio.duration?.toFixed(2)??'60';play.querySelector('.pro-warning').textContent='RPEN 的编辑工具扩展保留原有运行方式。自定义运行时效果需要 Pro 支持对应提供者。';play.showModal();}
 play.querySelector('[data-start]').onclick=async()=>{
   if(busy)return;setBusy(true);
   try{
@@ -87,15 +87,15 @@ play.querySelector('[data-start]').onclick=async()=>{
     const end=mode==='range'?Number(play.querySelector('[name=end]').value):null;
     if(!Number.isFinite(start)||start<0||(end!==null&&(!Number.isFinite(end)||end<=start)))throw Error('请填写有效的试玩时间区间');
     const {blob}=await nativePlaybackExport(editor.chart,editor.assets,editor.chartName);
-    status.textContent='正在准备试玩快照';
+    status.textContent=pt('正在准备试玩快照');
     const snapshot=await host.request('snapshot',blob,'application/zip');
     await host.request('play',JSON.stringify({snapshot:snapshot.id,start,end}));
-    play.close();status.textContent='原生试玩中';suspended=true;editor.pause();
+    play.close();status.textContent=pt('原生试玩中');suspended=true;editor.pause();
   }catch(error){report(error);}finally{setBusy(false);}
 };
 
-runtime.events.addEventListener('editor:save-succeeded',()=>{status.textContent='工程已保存';});
-runtime.events.addEventListener('editor:save-failed',()=>{status.textContent='保存失败，请重试';});
+runtime.events.addEventListener('editor:save-succeeded',()=>{status.textContent=pt('工程已保存');});
+runtime.events.addEventListener('editor:save-failed',()=>{status.textContent=pt('保存失败，请重试');});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){editor.pause();editor.noiseEditor.flush();}});
 const viewport=()=>{const height=window.visualViewport?.height??innerHeight;document.documentElement.style.setProperty('--pro-height',`${Math.round(height)}px`);document.body.classList.toggle('pro-keyboard-editing',matchMedia('(pointer:coarse)').matches&&height<innerHeight*.7);editor.invalidate();};
 window.visualViewport?.addEventListener('resize',viewport);window.addEventListener('resize',viewport);viewport();
@@ -108,7 +108,7 @@ async function control(){
     if(state.message)report(Error(state.message));
     if(state.state==='request-close')await close();
     if(state.state==='playing'&&!suspended){suspended=true;editor.pause();}
-    if(state.state==='visible'&&suspended){suspended=false;editor.pause();status.textContent='已返回编辑位置';viewport();window.dispatchEvent(new Event('resize'));editor.invalidate();}
+    if(state.state==='visible'&&suspended){suspended=false;editor.pause();status.textContent=pt('已返回编辑位置');viewport();window.dispatchEvent(new Event('resize'));editor.invalidate();}
   }catch(error){status.textContent='本地服务连接中断，请保留当前窗口并重试';}
   setTimeout(control,suspended?500:350);
 }

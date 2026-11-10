@@ -43,6 +43,7 @@ export function installNativePreview({ editor, host }) {
   }
   function layout() {
     for (const surface of surfaces) {
+      if (surface.canvas.parentElement !== surface.original.parentElement) surface.original.after(surface.canvas, surface.message);
       const style = getComputedStyle(surface.original);
       const active = visible() && (surface.fullscreen ? editor.preview.visible : document.querySelector('#realtime-enabled').checked);
       surface.canvas.hidden = !active; surface.original.classList.toggle('pro-native-source', active);
@@ -73,6 +74,8 @@ export function installNativePreview({ editor, host }) {
       if (failed || performance.now() - changedAt < 250) return;
       if (!id) {
         const token = generation;
+        const unsupported = Object.values(editor.chart.globalEvents?.types ?? {}).some(type => type.source?.kind === 'mod' && type.source?.id !== 'spatial-camera');
+        if (unsupported) throw Error(text('此谱面包含原生端尚未支持的扩展效果，请切换到 RPEN 渲染。', 'This chart uses unsupported runtime extensions. Switch to RPEN rendering.', 'この譜面にはネイティブ側が未対応の拡張効果があります。RPEN 描画に切り替えてください。'));
         const { blob } = await nativePlaybackExport(editor.chart, editor.assets, editor.chartName);
         if (token !== generation || !visible()) return;
         const snapshot = await host.request('snapshot', blob, 'application/zip');

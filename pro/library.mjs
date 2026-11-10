@@ -40,11 +40,11 @@ export function installLibrary({ editor, host, action, save, isBusy, setBusy, st
     const query = search.value.trim().toLocaleLowerCase();
     for (const chart of rows.filter(chart => [chart.name, chart.level, chart.charter, chart.composer].join(' ').toLocaleLowerCase().includes(query))) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'pro-library-chart';
-      const title = document.createElement('strong'); title.textContent = chart.name || '未命名谱面';
+      const title = document.createElement('strong'); title.textContent = chart.name || pt('未命名谱面');
       const detail = document.createElement('span'); detail.textContent = [chart.level, chart.charter, chart.composer].filter(Boolean).join(' / ');
       button.append(title, detail); button.disabled = working; button.onclick = () => read(chart); list.append(button);
     }
-    message.textContent = list.childElementCount ? `共 ${list.childElementCount} 个谱面` : rows.length ? '没有匹配的谱面' : 'Pro 本地谱面库暂无谱面';
+    message.textContent = list.childElementCount ? `共 ${list.childElementCount} 个谱面` : rows.length ? pt('没有匹配的谱面') : pt('Pro 本地谱面库暂无谱面');
   }
   search.oninput = render;
   const selectCandidate = candidates => new Promise(resolve => {
@@ -55,7 +55,7 @@ export function installLibrary({ editor, host, action, save, isBusy, setBusy, st
     });
   });
   async function read(chart) {
-    if (working) return; lock(true); message.textContent = '正在读取谱面副本';
+    if (working) return; lock(true); message.textContent = pt('正在读取谱面副本');
     try {
       await save();
       const result = await libraryOperation(host, { action: 'read', key: chart.key });
@@ -63,27 +63,27 @@ export function installLibrary({ editor, host, action, save, isBusy, setBusy, st
       if (!response.ok) throw Error('谱面副本读取失败，请重新打开列表');
       const file = new File([await response.blob()], 'chart.pez', { type: 'application/zip' });
       const imported = await editor.importFiles([file], { selectCandidate, metadata: { name: chart.name, level: chart.level, charter: chart.charter, composer: chart.composer } });
-      if (imported) { await save(); dialog.close(); status.textContent = '已导入独立编辑副本'; }
+      if (imported) { await save(); dialog.close(); status.textContent = pt('已导入独立编辑副本'); }
     } catch (error) { message.textContent = error.message; report(error); }
     finally { lock(false); }
   }
-  const importButton = action('从 Pro 导入', async () => {
+  const importButton = action(pt('从 Pro 导入'), async () => {
     if (isBusy()) return;
-    search.hidden = false; search.value = ''; rows = []; list.replaceChildren(); dialog.showModal(); lock(true); message.textContent = '正在读取 Pro 谱面库';
+    search.hidden = false; search.value = ''; rows = []; list.replaceChildren(); dialog.showModal(); lock(true); message.textContent = pt('正在读取 Pro 谱面库');
     try { rows = (await libraryOperation(host, { action: 'list' })).value.charts; lock(false); render(); }
     catch (error) { lock(false); message.textContent = error.message; }
   });
   importButton.id = 'pro-library-import';
-  const exportButton = action('存入 Pro 谱面库', async () => {
+  const exportButton = action(pt('存入 Pro 谱面库'), async () => {
     if (isBusy()) return;
-    if (!editor.hasDocument) throw Error('请先新建或打开一个工程');
+    if (!editor.hasDocument) throw Error(pt('请先新建或打开一个工程'));
     lock(true);
     try {
       editor.pause(); editor.noiseEditor.flush(); await save();
-      status.textContent = '正在创建 Pro 谱面副本';
+      status.textContent = pt('正在创建 Pro 谱面副本');
       const snapshot = await host.request('snapshot', await copyExport(editor), 'application/zip');
       const result = await libraryOperation(host, { action: 'write', snapshot: snapshot.id });
-      status.textContent = `已存入 Pro 谱面库：${result.value.name}`; editor.notify('已创建新谱面，原谱面未被覆盖', 'success');
+      status.textContent = `已存入 Pro 谱面库：${result.value.name}`; editor.notify(pt('已创建新谱面，原谱面未被覆盖'), 'success');
     } finally { lock(false); }
   });
   exportButton.id = 'pro-library-export';

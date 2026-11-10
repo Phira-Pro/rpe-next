@@ -25,7 +25,7 @@ export function installPanels(editor) {
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = {};
   const resize = () => { window.dispatchEvent(new Event('resize')); editor.invalidate(); };
   const workspace = document.querySelector('.workspace');
-  const dock = document.createElement('div');dock.className='pro-panel-dock';dock.setAttribute('aria-label','编辑面板');
+  const dock = document.createElement('div');dock.className='pro-panel-dock';dock.setAttribute('aria-label',pt('编辑面板'));
   document.querySelector('body > header').after(dock);
   const grouped = new Map();
   let open = Array.isArray(saved.open) ? saved.open.filter(id => topPanels.includes(id))
@@ -35,7 +35,7 @@ export function installPanels(editor) {
       const expanded = open.includes(id);
       set(!expanded);shortcut.setAttribute('aria-expanded',String(expanded));
       shortcut.textContent = definitions.find(entry => entry[0] === id)[2] + (expanded ? ' ▲' : ' ▼');
-      shortcut.setAttribute('aria-label', (expanded ? '收起' : '展开') + definitions.find(entry => entry[0] === id)[2] + '面板');
+      shortcut.setAttribute('aria-label', (expanded ? pt('收起') : pt('展开')) + definitions.find(entry => entry[0] === id)[2] + pt('面板'));
     }
     dock.hidden=workspace.hidden;
   };
@@ -48,14 +48,14 @@ export function installPanels(editor) {
     const set = folded => {
       panel.dataset.proFolded = String(folded);
       button.textContent = folded ? `${label} ${id === 'properties' ? '◀' : '▼'}` : '▲';
-      button.title = `${folded ? '展开' : '收起'}${label}面板`;
+      button.title = `${folded ? pt('展开') : pt('收起')}${label}面板`;
       button.setAttribute('aria-label', button.title);
       button.setAttribute('aria-expanded', String(!folded));
       if (id === 'properties') document.querySelector('.workspace').dataset.proInspectorFolded = String(folded);
     };
     if(topPanels.includes(id)){
       panel.dataset.proGroup='top';
-      const shortcut=document.createElement('button');shortcut.type='button';shortcut.textContent=label+' ▼';shortcut.dataset.proShortcut=id;shortcut.setAttribute('aria-label','展开'+label+'面板');
+      const shortcut=document.createElement('button');shortcut.type='button';shortcut.textContent=label+' ▼';shortcut.dataset.proShortcut=id;shortcut.setAttribute('aria-label',pt('展开')+label+pt('面板'));
       grouped.set(id,{set,shortcut});dock.append(shortcut);
       shortcut.onclick=()=>button.click();
     }
