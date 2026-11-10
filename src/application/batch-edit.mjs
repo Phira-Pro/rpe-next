@@ -6,7 +6,9 @@ import { snapPosition, verticalGrid } from '../core/edit-grid.mjs';
 import { alignShaderParameters } from '../core/shader-events.mjs';
 import { eventListAt, selectedEvents } from './event-commands.mjs';
 import { t } from '../i18n.mjs';
+import { lineOffsetMapper } from './multi-line-edit.mjs';
 import { assembleSelectionEdits } from './selection-edits.mjs';
+import { EVENT_VALUE_MEMORY_LIMIT, hasEventValueMemory, rememberEventValueChange } from './event-value-memory.mjs';
 
 export const BATCH_ACTIONS = [
   ['MirrorY', t('batch-edit.s8e30bb2')], ['MirrorMid', t('batch-edit.s89eacaf')],
@@ -26,12 +28,13 @@ export function captureSelection(session) {
     ? [...(session.multiLineSelection ?? new Map())].flatMap(([lineIndex, selection]) => [...selection].map(index => ({ lineIndex, index, note: session.chart.judgeLineList?.[lineIndex]?.notes?.[index] }))).filter(entry => entry.note)
     : [...session.selection].sort((left, right) => left - right).filter(index => session.notes[index]).map(index => ({ lineIndex: session.lineIndex, index, note: session.notes[index] }));
   return { chart: session.chart, lineIndex: session.lineIndex, eventLayer: session.eventLayer, focus: session.focus,
-    shaderAutoAlign: session.shaderAutoAlign, notes, events, largeSelection: session.largeDocument?.logicalSelection };
+    shaderAutoAlign: session.shaderAutoAlign, notes, events, largeSelection: session.largeDocument?.logicalSelection,
+    lineOrder: session.multiLineActive ? [...session.multiLineIndices] : undefined };
 }
 
 export function editCapturedSelection(snapshot, { note = value => value, event = value => value, lineOffset = 0 } = {}) {
   const count = snapshot.chart.judgeLineList.length;
-  const target = source => ((source + lineOffset) % count + count) % count;
+  const target = lineOffsetMapper(count, snapshot.lineOrder, snapshot.lineOrder, lineOffset);
   const changes = snapshot.notes.map(entry => {
     const sourceLineIndex = entry.lineIndex ?? snapshot.lineIndex;
     return { kind: 'notes', index: entry.index, sourceLineIndex, lineIndex: target(sourceLineIndex), before: entry.note, after: integerNoteAlpha(note(entry.note, entry)) };
@@ -45,11 +48,11 @@ export function editCapturedSelection(snapshot, { note = value => value, event =
   const sourceLines = new Set(changes.map(change => change.sourceLineIndex));
   const lineIndex = sourceLines.size > 1 ? snapshot.lineIndex : target(snapshot.lineIndex);
   return { ...assembleSelectionEdits(snapshot, changes, { lineIndex }),
-    ...(snapshot.largeSelection && snapshot.notes.length ? { largeNoteEdit: { transform: note, lineOffset } } : {}) };
+    ...(snapshot.largeSelection && snapshot.notes.length ? { largeNoteEdit: { transform: note, lineOffset, lineOrder: snapshot.lineOrder } } : {}) };
 }
 
 export function commitSelectionEdit(session, result, label) {
-  if (result.largeNoteEdit && session.largeDocument?.logicalSelection) return session.largeDocument.transformSelected(label, result.largeNoteEdit.transform, { lineOffset: result.largeNoteEdit.lineOffset });
+  if (result.largeNoteEdit && session.largeDocument?.logicalSelection) return session.largeDocument.transformSelected(label, result.largeNoteEdit.transform, { lineOffset: result.largeNoteEdit.lineOffset, lineOrder: result.largeNoteEdit.lineOrder });
   if (result.chart === session.chart) return false;
   assertChart(result.chart);
   const beforeSelection = session.selectionState();
@@ -60,6 +63,9 @@ export function commitSelectionEdit(session, result, label) {
   if (result.multiLineSelection) session.multiLineSelection = new Map([...result.multiLineSelection].map(([line, values]) => [line, new Set(values)]));
   if (result.multiEventSelection) session.multiEventSelection = new Map([...result.multiEventSelection].map(([line, values]) => [line, new Set(values)]));
   session.commit(label, result.chart, beforeSelection);
+  if (hasEventValueMemory(session) && session.chart === result.chart) for (const change of (result.changes ?? []).slice(0, EVENT_VALUE_MEMORY_LIMIT)) {
+    if (change.kind === 'events') rememberEventValueChange(session, change.before, change.after, undefined, { type: change.type, index: change.index });
+  }
   return true;
 }
 

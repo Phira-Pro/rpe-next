@@ -1,7 +1,7 @@
 import { createNoiseArea, createNoiseEvent, noiseCenter, noiseHasAnchor, noiseRuntime, noiseActivationIntervals, NOISE_TRACKS, withNoiseAreas, shiftNoiseArea } from '../core/noise-areas.mjs';
 import { samplingTarget, sampleEditingArea, noiseSampleHandle, applyNoiseSample, fitNoiseSampleView } from '../core/noise-sampling.mjs';
 import { beatValue, fromNumber, parseBeat, formatBeat } from '../core/beat.mjs';
-import { previewViewport, previewPositionScale, strokeIntersects } from '../core/editor-display.mjs';
+import { previewViewport, previewPositionScale, previewNoiseGeometry, strokeIntersects } from '../core/editor-display.mjs';
 import { prepareCanvas } from './timeline.mjs';
 import { createCustomEasingControls } from './custom-easing-controls.mjs';
 import { previewCurveEvent } from '../application/animation-curve-preview.mjs';
@@ -20,6 +20,17 @@ import { drawEditorJudgement, editorJudgementWidth } from './editor-judgement.mj
 import { dragEventEndpoint } from '../core/event-drag.mjs';
 import { t } from '../i18n.mjs';
 import { selectionCounts } from '../application/selection-count.mjs';
+import { displayNumber, displayPosition } from './spatial-display.mjs';
+import { SamplingControls } from './sampling-controls.mjs';
+import { SamplingTargets } from './sampling-targets.mjs';
+import { samplingPreferences } from '../platform/sampling-preferences.mjs';
+import { snapSamplePoint, snapSampleAngle, snapConstrainedPoint } from '../core/sampling-grid.mjs';
+import { drawSamplingGrid, drawSnapGuides } from './sampling-guides.mjs';
+import { copyEventValueMemory, rememberEventValueChange, withEventLock } from '../application/event-value-memory.mjs';
+import { captureNoiseEdit, noiseEventTool, applyNoiseEdit, mirrorNoiseEvent, mirrorNoiseArea } from '../application/noise-edit.mjs';
+import { NoiseMultiEditPanel } from './noise-multi-edit.mjs';
+import { canCutEvent } from '../application/event-tools.mjs';
+import { EVENT_WHEEL_STEPS } from '../core/note-editing.mjs';
 
 function button(text, title, run) {
   const control = document.createElement('button'); control.type = 'button'; control.textContent = text; control.title = title; control.onclick = run; return control;
@@ -37,6 +48,16 @@ export class NoiseAreaEditor {
   constructor(host, canvas, getContext, options) {
     Object.assign(this, options); this.host = host; this.canvas = canvas; this.getContext = getContext;
     this.properties = document.querySelector('#noise-properties'); this.active = false; this.selected = -1; this.selection = new Set();
+    this.properties.addEventListener('pointerdown', event => {
+      this.propertyPointer?.release();
+      const release = finish => {
+        if (finish && finish.type !== 'blur' && finish.pointerId !== event.pointerId) return;
+        this.propertyPointer = null;
+        window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', release, true); window.removeEventListener('blur', release);
+      };
+      this.propertyPointer = { target: event.target, release };
+      window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', release, true); window.addEventListener('blur', release);
+    }, true);
     this.event = null; this.cursor = null; this.rects = []; this.clipboard = null; this.pending = null; this.draftChart = null; this.easingState = { open: false };
     this.distributions = new WeakMap(); this.hiddenLayers = new Set(); this.simpleLayers = new Set();
     this.areaList = new NoiseAreaList(index => this.select(index));
@@ -52,8 +73,9 @@ export class NoiseAreaEditor {
     this.modeHeader.append(this.modePrimary, spacer, ...this.modeTracks, trailing);
     document.querySelector('.timeline-head').append(this.modeHeader);
     this.overlay = document.createElement('canvas'); this.overlay.className = 'noise-sampler'; this.overlay.hidden = true; canvas.closest('.stage').append(this.overlay);
-    this.sampleBar = document.createElement('div'); this.sampleBar.className = 'noise-sample-bar'; this.sampleBar.hidden = true;
-    this.sampleBar.append(hint(t('noise-area.s5cb983c')), button(t('noise-area.s2e0df4a'), t('noise-area.s419c38c'), () => this.endSample(true)), button(t('noise-area.s4d0b468'), t('noise-area.s38d6600'), () => this.endSample(false))); canvas.closest('.stage').append(this.sampleBar);
+    this.sampleBar = document.createElement('div'); this.sampleBar.className = 'sampling-dock'; this.sampleBar.hidden = true;
+    this.sampleBar.classList.add('sampling-dock'); document.querySelector('[data-panel="noise-properties"]').prepend(this.sampleBar);
+    this.sampleControls = new SamplingControls(this.sampleBar,{change:()=>this.invalidate(),apply:()=>this.endSample(true),cancel:()=>this.endSample(false)}); this.sampleTargets=new SamplingTargets();
     for (const [name, handler] of [['pointerdown', event => this.down(event)], ['pointermove', event => this.move(event)], ['pointerup', event => this.up(event)], ['pointercancel', () => this.cancelGesture()]]) canvas.addEventListener(name, handler);
     canvas.addEventListener('wheel', event => { event.preventDefault(); event.stopPropagation(); if (!this.sampleMode) { this.wheel(event); this.cursor = this.point(event); this.updateDrag(); } }, { passive: false });
     canvas.addEventListener('contextmenu', event => { event.preventDefault(); if (this.suppressContextMenu || this.drag?.endpoint) { this.suppressContextMenu = false; event.stopImmediatePropagation?.(); return; } this.pending = null; this.onContextMenu?.(event); this.invalidate(); });
@@ -65,7 +87,7 @@ export class NoiseAreaEditor {
     this.canvas.addEventListener('pointerleave', () => { if (!this.drag) { this.cursor = null; this.hover = null; this.canvas.style.cursor = 'default'; this.invalidate(); } });
   }
   get context() { return this.drawingContext ?? this.getContext(); }
-  get chart() { return this.draftChart ?? this.context.session.chart; }
+  get chart() { return this.drawingChart ?? this.draftChart ?? this.context.session.chart; }
   areas() { return this.chart.blockAreaList ?? []; }
   visibleAreas(start, end) {
     const areas = this.areas();
@@ -77,8 +99,8 @@ export class NoiseAreaEditor {
   }
   area() { return this.areas()[this.selected]; }
   open() { this.active = true; this.context.timeline.origin = this.context.tempo.beat(this.context.seconds()); this.syncChrome(); this.activate('noise'); this.render(); this.invalidate(); }
-  close() { this.flush(); this.cancelGesture(); this.endSample(false); this.active = false; this.context.timeline.origin = this.context.tempo.beat(this.context.seconds(), this.context.session.line?.bpmfactor ?? 1); this.syncChrome(); this.activate('chart'); this.invalidate(); }
-  reset() { this.cancelGesture(); this.endSample(false); this.active = false; this.selected = -1; this.selection.clear(); this.event = null; this.pending = null; this.hiddenLayers.clear(); this.simpleLayers.clear(); this.areaList.reset(); this.syncChrome(); }
+  close() { this.batch?.hide(); this.flush(); this.cancelGesture(); this.endSample(false); this.active = false; this.context.timeline.origin = this.context.tempo.beat(this.context.seconds(), this.context.session.line?.bpmfactor ?? 1); this.syncChrome(); this.activate('chart'); this.invalidate(); }
+  reset() { this.batch?.hide(); this.cancelGesture(); this.endSample(false); this.active = false; this.selected = -1; this.selection.clear(); this.event = null; this.pending = null; this.hiddenLayers.clear(); this.simpleLayers.clear(); this.areaList.reset(); this.syncChrome(); }
   syncChrome() {
     document.querySelector('.editor').classList.toggle('noise-mode', this.active);
     setProperty(this.modeHeader, 'hidden', !this.active);
@@ -92,6 +114,7 @@ export class NoiseAreaEditor {
     setProperty(this.canvas, 'hidden', !this.active || this.context.previewVisible || Boolean(this.sampleMode));
     setProperty(document.querySelector('#noise-tab'), 'hidden', !this.active);
     setProperty(this.overlay, 'hidden', !this.sampleMode); setProperty(this.sampleBar, 'hidden', !this.sampleMode);
+    if(this.properties)this.properties.hidden=Boolean(this.sampleMode);
     document.querySelector('.editor').classList.toggle('noise-sampling', Boolean(this.sampleMode));
     setProperty(document.querySelector('#mirror'), 'disabled', this.active);
     setProperty(document.querySelector('#batch-run'), 'disabled', this.active || !this.context.session.selection.size);
@@ -110,11 +133,12 @@ export class NoiseAreaEditor {
   replaceArea(area, base = this.context.session.chart) {
     return withNoiseAreas(base, (base.blockAreaList ?? []).map((entry, index) => index === this.selected ? area : entry));
   }
-  edit(change, finish = true) {
+  edit(change, finish = true, valueField) {
     if (!this.area()) return;
     try {
-      const previous = this.event ? this.area()[this.event.type]?.[this.event.index] : null;
-      const area = change(structuredClone(this.area()));
+      const source = this.area();
+      const previous = this.event ? source[this.event.type]?.[this.event.index] : null;
+      const area = change(structuredClone(source));
       if (previous) area[this.event.type][this.event.index] = rebaseCustomEventValues(previous, area[this.event.type][this.event.index]);
       if (previous?.linkgroup > 0 && this.event.type !== 'activeIntervals') {
         const next = area[this.event.type][this.event.index];
@@ -127,6 +151,9 @@ export class NoiseAreaEditor {
         });
       }
       this.draftChart = this.replaceArea(area);
+      const session = this.context.session;
+      copyEventValueMemory(session, ({ type, index }) => source[type]?.[index], ({ type, index }) => area[type]?.[index]);
+      if (previous) rememberEventValueChange(session, previous, area[this.event.type][this.event.index], valueField, this.event);
       if (finish) this.flush();
       this.invalidate();
     } catch (error) { if (finish) this.report(error); return false; }
@@ -151,11 +178,15 @@ export class NoiseAreaEditor {
     const areas = [...this.areas(), { ...createNoiseArea(start, end), layerId: noiseLayers(this.chart)[0].id, editorPositionX: this.editorX(horizontal) }]; const index = areas.length - 1;
     if (this.commitAreas(t('noise-area.sea27c43'), areas)) this.select(index);
   }
-  addEvent(type, start, end, hooked = false) {
+  addEvent(type, start, end, hooked = false, easingType) {
     const area = this.area(); if (!area) { this.notify(t('noise-area.s0c2a653'), 'warning'); return; }
     const sample = noiseRuntime(area, this.context.tempo).sample(this.context.tempo.seconds(start));
-    const value = sample.values[type]?.value ?? 0;
-    const event = type === 'activeIntervals' ? { startTime: fromNumber(start), endTime: fromNumber(end), readyFlash: 0.5 } : { ...createNoiseEvent(value, value, start, end, noiseHasAnchor(type) ? sample.values[type]?.event?.anchor ?? noiseCenter(area) : undefined), inst: hooked ? 1 : 0 };
+    const previous = (area[type] ?? []).filter(event => beatValue(event.endTime) <= start).sort((a, b) => beatValue(b.startTime) - beatValue(a.startTime))[0];
+    const value = previous?.end ?? sample.values[type]?.value ?? 0;
+    const inherited = previous ? Object.fromEntries(['easingType', 'easingLeft', 'easingRight', 'bezier', 'bezierPoints', 'customEasing'].filter(key => previous[key] !== undefined).map(key => [key, structuredClone(previous[key])])) : {};
+    let event = type === 'activeIntervals' ? { startTime: fromNumber(start), endTime: fromNumber(end), readyFlash: 0.5 } : { ...createNoiseEvent(value, value, start, end, noiseHasAnchor(type) ? previous?.anchor ?? sample.values[type]?.event?.anchor ?? noiseCenter(area) : undefined), ...inherited, inst: hooked ? 1 : 0 };
+    if (type !== 'activeIntervals' && event.customEasing) event = rebaseCustomEventValues(previous, event);
+    if (type !== 'activeIntervals' && easingType !== undefined) event = withStandardEasing(event, easingType);
     const events = [...(area[type] ?? []), event]; const areas = this.areas().map((entry, index) => index === this.selected ? { ...entry, [type]: events } : entry);
     if (this.commitAreas(t('noise-area.s074f6c7') + NOISE_TRACKS.find(track => track[0] === type)[1], areas)) this.select(this.selected, { type, index: events.length - 1 });
   }
@@ -179,25 +210,27 @@ export class NoiseAreaEditor {
     if (cut) this.remove();
     this.notify(cut ? t('noise-area.sff296eb') : t('noise-area.se204bc7'), 'success'); this.invalidate();
   }
-  pastedAreas(at, keepTime = false) {
+  pastedAreas(at, keepTime = false, mirror = false) {
     const areas = [...this.areas()]; const delta = keepTime ? 0 : at - this.clipboard.start;
     const firstArea = this.clipboard.entries.find(entry => entry.type === 'area');
     const deltaX = firstArea && this.cursor?.side === 'areas' ? this.editorX(this.cursor.x) - firstArea.value.editorPositionX : 0;
     for (const entry of this.clipboard.entries) {
       if (entry.type === 'area') {
         const sourceLayer = noiseLayerId(entry.value); const layers = noiseLayers(this.chart);
-        areas.push({ ...shiftNoiseArea(entry.value, delta), layerId: layers.some(layer=>layer.id===sourceLayer) ? sourceLayer : layers[0].id, editorPositionX: Math.max(-675, Math.min(675, entry.value.editorPositionX + deltaX)) });
+        areas.push({ ...shiftNoiseArea(mirror ? mirrorNoiseArea(entry.value) : entry.value, delta), layerId: layers.some(layer=>layer.id===sourceLayer) ? sourceLayer : layers[0].id, editorPositionX: Math.max(-675, Math.min(675, entry.value.editorPositionX + deltaX)) });
       }
       else {
         if (!areas[this.selected]) throw new Error(t('noise-area.s1186146'));
-        const area = areas[this.selected]; const value = { ...structuredClone(entry.value), startTime: fromNumber(beatValue(entry.value.startTime) + delta), endTime: fromNumber(beatValue(entry.value.endTime) + delta) };
+        const area = areas[this.selected]; const value = { ...(mirror ? mirrorNoiseEvent(entry.type, entry.value) : structuredClone(entry.value)), startTime: fromNumber(beatValue(entry.value.startTime) + delta), endTime: fromNumber(beatValue(entry.value.endTime) + delta) };
         areas[this.selected] = { ...area, [entry.type]: [...(area[entry.type] ?? []), value] };
       }
     }
     return areas;
   }
-  action(action) {
+  action(action, input) {
     if (!this.active) return false;
+    if (input?.repeat && ['SwitchLock', 'StickNext', 'AddTap', 'AddEvent', 'AddHold'].includes(action)) return true;
+    if (this.pending && /^[0-9]$/.test(input?.key ?? '') && !input.ctrlKey && !input.altKey) { this.place(false, Number(input.key) || 10); return true; }
     if (action === 'Esc') {
       if (this.sampleMode) this.endSample(false);
       else { this.cancelGesture(); this.selection.clear(); this.event = null; this.pending = null; this.clipboard = null; this.activate('noise'); this.render(); }
@@ -206,7 +239,7 @@ export class NoiseAreaEditor {
     else if (['Delete', 'QuickDelete'].includes(action)) this.remove();
     else if (['Paste', 'KeepTimePaste', 'PasteMirror', 'KeepTimePasteMirror'].includes(action)) {
       if (this.clipboard) {
-        try { this.commitAreas(t('noise-area.see88999'), this.pastedAreas(this.cursor?.beat ?? this.context.timeline.origin, action.startsWith('KeepTime'))); } catch (error) { this.report(error); }
+        try { this.commitAreas(t('noise-area.see88999'), this.pastedAreas(this.cursor?.beat ?? this.context.timeline.origin, action.startsWith('KeepTime'), action.endsWith('Mirror'))); } catch (error) { this.report(error); }
       }
     } else if (action === 'SelectAll') {
       this.selection = new Set(this.cursor?.side === 'events' && this.area() ? NOISE_TRACKS.flatMap(([type]) => (this.area()[type] ?? []).map((entry, index) => type + ':' + index)) : this.areas().map((area,index) => 'area:' + index)); this.render();
@@ -231,10 +264,30 @@ export class NoiseAreaEditor {
         }
         return area;
       });
-    } else if (['SwitchLock', 'StickNext'].includes(action)) return true;
+    } else if (['SwitchLock', 'StickNext'].includes(action)) {
+      const snapshot = captureNoiseEdit(this);
+      if (snapshot.mode !== 'events' || this.selection.size !== 1 || this.event?.type === 'activeIntervals') return true;
+      if (action === 'SwitchLock') {
+        const { type, index } = this.event;
+        this.edit(area => { area[type][index] = withEventLock(this.context.session, this.area()[type][index], !this.area()[type][index].inst); return area; });
+      } else {
+        const result = noiseEventTool(snapshot, 'next');
+        if (result.chart) applyNoiseEdit(this, result, t('event-tools.s3c9157f'));
+      }
+    }
     else if (['SwitchUI', 'ToggleMultiLine', 'SwitchMultiLineMode', 'NumberFill', 'AddDrag', 'AddFlick', 'CurveBegin', 'CurveEnd'].includes(action) || action === 'PageLeft' || action === 'PageRight') return true;
     else return false;
     this.invalidate(); return true;
+  }
+  cutSingleEvent() {
+    this.flush();
+    if (this.selection.size !== 1 || !this.event || this.event.type === 'activeIntervals') return;
+    try {
+      const { timeline, tempo, session } = this.context;
+      const result = noiseEventTool(captureNoiseEdit(this), 'cut', { division: timeline.division, density: session.cutDensity, beat: timeline.origin, tempo });
+      if (applyNoiseEdit(this, result, t('event-tools.s9fda3f9'))) this.notify(t('event-tools.sdf97600', { p0: result.report.changed, p1: result.report.generated }), 'success');
+      else this.notify(t('event-tools.s955964e'), 'warning');
+    } catch (error) { this.report(error); }
   }
   layout() {
     if (this.drawingLayout) return this.drawingLayout;
@@ -272,13 +325,13 @@ export class NoiseAreaEditor {
     const side = x < layout.split ? 'areas' : 'events'; const column = Math.max(0, Math.min(5, Math.floor((x - layout.eventLeft) / layout.eventWidth)));
     return { x, y, side, type: NOISE_TRACKS[column][0], beat: this.beatAt(y), rawBeat: this.beatAt(y, false) };
   }
-  place(hooked = false) {
+  place(hooked = false, easingType) {
     if (!this.cursor || this.cursor.y < HEADER_HEIGHT) return;
     if (!this.pending) this.pending = { ...this.cursor, hooked };
     else {
       const start = Math.min(this.pending.beat, this.cursor.beat); const end = Math.max(this.pending.beat, this.cursor.beat);
       if (this.pending.side === 'areas') this.add(start, end, this.pending.x);
-      else this.addEvent(this.pending.type, start, end, this.pending.hooked);
+      else this.addEvent(this.pending.type, start, end, this.pending.hooked, easingType);
       this.pending = null;
     }
     this.invalidate();
@@ -292,7 +345,7 @@ export class NoiseAreaEditor {
     if (endpoint) {
       this.canvas.setPointerCapture(event.pointerId); this.event = endpoint; this.activate('noise-properties');
       this.drag = { kind: event.button === 0 ? 'start' : 'end', endpoint: true, start: this.cursor, hit: endpoint, base: this.context.session.chart, keys: new Set(this.selection), moved: false };
-      this.suppressContextMenu = event.button === 2; this.syncHover(); this.invalidate(); return;
+      this.suppressContextMenu = event.button === 2; this.updateDrag(); return;
     }
     if (this.drag?.kind === 'rectangle') { this.up(event, true); return; }
     this.canvas.setPointerCapture(event.pointerId);
@@ -333,7 +386,13 @@ export class NoiseAreaEditor {
       if (candidates.length && [...this.selection].some(key => key.startsWith('area:') !== (drag.start.side === 'areas'))) this.selection.clear();
       extendIntervalSelection(drag, candidates, this.selection, this.context.timeline.selectionInterval);
     }
-    if (drag.kind === 'rectangle' || drag.kind === 'stroke' || !drag.moved) { this.invalidate(); return; }
+    if (drag.kind === 'rectangle' || drag.kind === 'stroke' || !drag.moved && !drag.endpoint) { this.invalidate(); return; }
+    if (drag.endpoint) {
+      const original = drag.base.blockAreaList?.[this.selected]?.[drag.hit.type]?.[drag.hit.index];
+      if (!original) { this.cancelGesture(); return; }
+      const next = dragEventEndpoint(original, drag.kind === 'start' ? 'startTime' : 'endTime', this.cursor.beat);
+      if (beatValue(next.startTime) === beatValue(original.startTime) && beatValue(next.endTime) === beatValue(original.endTime)) { this.draftChart = null; this.dragError = null; this.invalidate(); return; }
+    }
     const delta = this.cursor.beat - drag.start.beat; const areas = structuredClone(drag.base.blockAreaList ?? []);
     for (const key of drag.keys) {
       const [type, rawIndex] = key.split(':'); const index = Number(rawIndex);
@@ -400,8 +459,17 @@ export class NoiseAreaEditor {
     const listTitle = t('noise-area.s54cdbff') + this.areas().length;
     if (this.listTitle.textContent !== listTitle) this.listTitle.textContent = listTitle;
     this.areaList.update(this.areas(), this.selected);
+    const batchSelection = this.selection.size > 1 ? captureNoiseEdit(this) : null;
+    if (batchSelection && (batchSelection.mode === 'areas' || [...this.selection].filter(key => !key.startsWith('activeIntervals:')).length > 0)) {
+      this.batch ??= new NoiseMultiEditPanel(this.properties, this);
+      this.batch.open(batchSelection); return;
+    }
+    this.batch?.hide();
     const signature = `${this.selected}/${this.event?.type}/${this.event?.index}`;
-    const focused = this.properties.contains(document.activeElement) && document.activeElement.matches('input,select') ? document.activeElement : null;
+    // Committing the old input during pointerdown must not replace the checkbox
+    // or button that is about to receive focus and the subsequent click.
+    const pointer = this.propertyPointer?.target;
+    const focused = pointer?.isConnected && this.properties.contains(pointer) ? pointer : this.properties.contains(document.activeElement) && document.activeElement.matches('input,select') ? document.activeElement : null;
     if (focused && signature === this.formSignature) {
       const snapshot = document.createElement('div'); this.renderProperties(snapshot);
       for (const control of snapshot.querySelectorAll('input,select')) { const existing = [...this.properties.querySelectorAll('input,select')].find(input => input.getAttribute('aria-label') === control.getAttribute('aria-label')); if (existing && existing !== focused) { existing.value = control.value; existing.checked = control.checked; } }
@@ -424,7 +492,7 @@ export class NoiseAreaEditor {
     const evaluateMovement = source => evaluateEventNumber(source, { type: sample.type, field: sample.field, event: this.area()[sample.type][sample.index], tempo: this.context.tempo });
     if (movementExpression) { setNumericExpressionResolver(input, evaluateMovement); input.title = t('noise-area.s61fd280'); }
     const read = () => kind === 'checkbox' ? input.checked : kind === 'beat' ? parseBeat(input.value) : kind === 'text' ? input.value : movementExpression && String(numericExpressionSource(input)).trim().endsWith('v') ? evaluateMovement(numericExpressionSource(input)) : (input.value.trim() ? Number(input.value) : NaN);
-    input.oninput = () => { try { const valid = this.edit(area => apply(area, read()), false); input.setCustomValidity(valid ? '' : t('noise-area.s615582b')); } catch (error) { input.setCustomValidity(error.message); } };
+    input.oninput = () => { try { const valid = this.edit(area => apply(area, read()), false, sample?.field); input.setCustomValidity(valid ? '' : t('noise-area.s615582b')); } catch (error) { input.setCustomValidity(error.message); } };
     input.onchange = () => { input.oninput(); if (input.checkValidity()) this.flush(); else this.notify(input.validationMessage, 'error'); };
     if (kind === 'number' || kind === 'duration' || kind === 'beat') {
       input.addEventListener('wheel', event => { event.preventDefault(); event.stopPropagation(); try { const increment = kind === 'beat' ? 1 / this.context.timeline.division : kind === 'duration' ? 0.001 : step; const current = kind === 'beat' ? beatValue(read()) : Number(input.value); const next = current + (event.deltaY < 0 ? increment : -increment); input.value = kind === 'beat' ? formatBeat(fromNumber(next)) : kind === 'duration' ? durationText(next) : round(next); input.onchange(); } catch (error) { this.report(error); } }, { passive: false });
@@ -447,9 +515,9 @@ export class NoiseAreaEditor {
       for (const [field, label] of [['startTime', t('noise-area.s087c451')], ['endTime', t('noise-area.sc4d3fa4')]]) this.field(host, label, event[field], (item, value) => modifyEvent(entry => { entry[field] = value; })(item), { kind: 'beat' });
       if (type === 'activeIntervals') this.field(host, t('noise-area.s207b20f'), readyFlashValue(event.readyFlash), (item, value) => modifyEvent(entry => { entry.readyFlash = Math.max(0, Math.round(value * 1000) / 1000); })(item), { kind: 'duration', clear: true });
       else {
-        for (const [field, label] of [['start', t('noise-area.sdc6ff65')], ['end', t('noise-area.sa3dd3ca')]]) this.field(host, label, event[field], (item, value) => modifyEvent(entry => { entry[field] = value; if (entry.inst) entry[field === 'start' ? 'end' : 'start'] = value; })(item), { step: type.startsWith('scale') ? 0.1 : 1, sample: { type, index, field } });
+        for (const [field, label] of [['start', t('noise-area.sdc6ff65')], ['end', t('noise-area.sa3dd3ca')]]) this.field(host, label, event[field], (item, value) => modifyEvent(entry => { entry[field] = value; if (entry.inst) entry[field === 'start' ? 'end' : 'start'] = value; })(item), { step: this.context.session.eventWheelSteps?.[type] ?? EVENT_WHEEL_STEPS[type] ?? 1, sample: { type, index, field } });
         if (noiseHasAnchor(type)) for (const axis of ['x', 'y']) this.field(host, t('noise-area.sbbcf4ca') + axis.toUpperCase(), event.anchor[axis], (item, value) => modifyEvent(entry => { entry.anchor[axis] = value; })(item), { sample: { type, index, field: 'anchor' } });
-        this.field(host, t('noise-area.s7787450'), event.inst, (item, value) => modifyEvent(entry => { entry.inst = value ? 1 : 0; if (value) entry.end = entry.start; })(item), { kind: 'checkbox' });
+        this.field(host, t('noise-area.s7787450'), event.inst, (item, value) => { item[type][index] = withEventLock(this.context.session, this.area()[type][index], value); return item; }, { kind: 'checkbox' });
         this.field(host, t('noise-area.s7941eab'), event.linkgroup ?? 0, (item, value) => modifyEvent(entry => { entry.linkgroup = Math.max(0, Math.round(value)); })(item));
         if (event.linkgroup > 0) host.append(button(t('noise-area.s6e49702') + event.linkgroup, t('noise-area.sbe454d5'), () => { this.selection = new Set(NOISE_TRACKS.slice(1).flatMap(([track]) => (this.area()[track] ?? []).flatMap((entry, position) => entry.linkgroup === event.linkgroup ? [track + ':' + position] : []))); this.render(); this.invalidate(); }));
         if (!event.customEasing) this.field(host, t('noise-area.s727b7cd'), event.easingType ?? 1, (item, value) => modifyEvent(entry => { Object.assign(entry, withStandardEasing(entry, value)); delete entry.customEasing; })(item), { choices: EASING_NAMES.map((name, position) => [position + 1, (position + 1) + ' · ' + name]) });
@@ -459,6 +527,10 @@ export class NoiseAreaEditor {
         if (!event.customEasing) for (const [field, label] of [['easingLeft', t('noise-area.s2fbff0e')], ['easingRight', t('noise-area.sb38574e')]]) this.field(host, label, event[field] ?? (field === 'easingLeft' ? 0 : 1), (item, value) => modifyEvent(entry => { entry[field] = value; })(item), { step: 0.05 });
         if (!event.customEasing) this.field(host, 'Bezier', event.bezier, (item, value) => modifyEvent(entry => { entry.bezier = value ? 1 : 0; })(item), { kind: 'checkbox' });
         if (!event.customEasing) for (const [position, label] of [t('noise-area.scc6b884'), t('noise-area.s2382dea'), t('noise-area.s8b368a9'), t('noise-area.se34ffb4')].entries()) this.field(host, label, (event.bezierPoints ?? [0, 0, 1, 1])[position], (item, value) => modifyEvent(entry => { entry.bezierPoints ??= [0, 0, 1, 1]; entry.bezierPoints[position] = value; })(item), { step: 0.05 });
+      }
+      if (type !== 'activeIntervals') {
+        const cut = button(t('event-inspector.se2c05eb'), t('event-inspector.s2043de5'), () => this.cutSingleEvent());
+        cut.disabled = !canCutEvent(type, event); host.append(cut);
       }
       host.append(button(t('noise-area.s6e88590'), t('noise-area.s9f829d4'), () => this.select(this.selected)));
     } else {
@@ -472,7 +544,10 @@ export class NoiseAreaEditor {
   }
   beginSample(target) {
     this.flush(); this.pause(); const area = this.area(); if (!area) return;
+    this.sampleSnap=this.sampleLocalSnap=this.angleSnap=null;
     this.sampleMode = { ...samplingTarget(area, target.type, target.index, target.field), base: this.sampleMode?.base ?? this.context.session.chart };
+    const value=target.type?area[target.type][target.index][target.field]:area[target.field];
+    this.sampleControls?.configure((typeof value==='number'?[['value',value]]:['x','y'].filter(key=>Number.isFinite(value?.[key])).map(key=>[key,value[key]])).map(([key,value])=>({key,label:key==='value'?t('sampling.value'):key.toUpperCase(),value,change:next=>{const changed=structuredClone(this.area()),entry=target.type?changed[target.type][target.index]:changed;if(key==='value'){entry[target.field]=next;if(entry.inst)entry[target.field==='start'?'end':'start']=next;}else entry[target.field][key]=next;this.draftChart=this.replaceArea(changed);this.invalidate();}})));
     this.sampleSeconds = target.type ? this.context.tempo.seconds(area[target.type][target.index][target.field === 'end' ? 'endTime' : 'startTime']) : this.context.tempo.seconds(this.context.timeline.origin);
     this.sampleZoom ??= [this.context.preview, this.context.realtimePreview].map(renderer => ({ renderer, original: renderer.viewDivisor ?? 1, divisor: renderer.viewDivisor ?? 1 }));
     this.sampleDrag = null; this.render(); this.invalidate();
@@ -481,23 +556,25 @@ export class NoiseAreaEditor {
     if (!this.sampleMode) return;
     for (const { renderer, original } of this.sampleZoom ?? []) renderer.viewDivisor = original;
     this.sampleZoom = null;
-    const chart = this.draftChart; this.sampleMode = null; this.sampleDrag = null; this.draftChart = null; this.syncChrome();
-    if (apply && chart) { try { this.commit(t('noise-area.seaab4c2'), chart); } catch (error) { this.report(error); } }
+    const chart = this.draftChart, mode = this.sampleMode; if(mode.base!==this.context.session.chart)apply=false; this.sampleMode = null; this.sampleDrag = null; this.draftChart = null; this.syncChrome();
+    if (apply && chart) { try {
+      this.commit(t('noise-area.seaab4c2'), chart);
+      if (mode.type) rememberEventValueChange(this.context.session, mode.base.blockAreaList[this.selected]?.[mode.type]?.[mode.index], this.context.session.chart.blockAreaList[this.selected]?.[mode.type]?.[mode.index], mode.field, mode);
+    } catch (error) { this.report(error); } }
     this.render(); this.invalidate();
   }
   fitSampleView() {
     const previousView = this.sampleView();
-    const rect = this.overlay.getBoundingClientRect(); const controlsBottom = this.sampleBar.getBoundingClientRect().bottom - rect.top;
-    const handle = noiseSampleHandle(this.area(), this.context.tempo, this.sampleSeconds, this.sampleMode);
+    const rect = this.overlay.getBoundingClientRect(); const controlsBottom = this.sampleControls ? 0 : this.sampleBar.getBoundingClientRect().bottom - rect.top;
     for (const zoom of this.sampleZoom ?? []) {
       const positionScale = previewPositionScale(zoom.renderer.aspectRatio ?? 1.5);
-      const position = { x: handle.x * positionScale.x, y: handle.y * positionScale.y };
+      const position = noiseSampleHandle(this.area(), this.context.tempo, this.sampleSeconds, this.sampleMode, positionScale);
       if (this.context.sampleAutoFit !== false) zoom.divisor = fitNoiseSampleView(position, rect.width, rect.height, zoom.renderer.aspectRatio ?? 1.5, zoom.divisor, controlsBottom);
       zoom.renderer.viewDivisor = this.context.sampleAutoFit === false ? zoom.original : zoom.divisor;
     }
     const view = this.sampleView();
     if (this.sampleDrag && view.scale !== previousView.scale) {
-      const position = view.screen(handle); const pointer = this.sampleDrag.pointer;
+      const position = view.screen(noiseSampleHandle(this.area(), this.context.tempo, this.sampleSeconds, this.sampleMode, view.positionScale)); const pointer = this.sampleDrag.pointer;
       this.sampleDrag.offset = { x: pointer.x - view.left - position.x, y: pointer.y - view.top - position.y };
     }
   }
@@ -505,22 +582,37 @@ export class NoiseAreaEditor {
     const rect = this.overlay.getBoundingClientRect(); const renderer = this.context.previewVisible ? this.context.preview : this.context.realtimePreview;
     const viewport = previewViewport(rect.width, rect.height, renderer.aspectRatio ?? 1.5); const scale = viewport.scale / (renderer.viewDivisor ?? 1);
     const positionScale = previewPositionScale(renderer.aspectRatio ?? 1.5);
-    return { ...rect.toJSON(), viewport, scale, world: point => ({ x: (point.x - rect.width / 2) / (scale * positionScale.x), y: (rect.height / 2 - point.y) / (scale * positionScale.y) }), screen: point => ({ x: rect.width / 2 + point.x * scale * positionScale.x, y: rect.height / 2 - point.y * scale * positionScale.y }) };
+    return { ...rect.toJSON(), viewport, scale, positionScale, world: point => ({ x: (point.x - rect.width / 2) / scale, y: (rect.height / 2 - point.y) / scale }), screen: point => ({ x: rect.width / 2 + point.x * scale, y: rect.height / 2 - point.y * scale }) };
   }
   sampleDown(event) {
     if (!this.sampleMode || event.button !== 0) return; event.preventDefault(); event.stopPropagation();
-    const view = this.sampleView(); const point = { x: event.clientX - view.left, y: event.clientY - view.top }; const handle = view.screen(noiseSampleHandle(this.area(), this.context.tempo, this.sampleSeconds, this.sampleMode));
+    const view = this.sampleView(); const point = { x: event.clientX - view.left, y: event.clientY - view.top }; const handle = view.screen(noiseSampleHandle(this.area(), this.context.tempo, this.sampleSeconds, this.sampleMode, view.positionScale));
     if (Math.hypot(point.x - handle.x, point.y - handle.y) > 26) return;
-    this.overlay.setPointerCapture(event.pointerId); this.sampleDrag = { pointer: { x: event.clientX, y: event.clientY }, offset: { x: point.x - handle.x, y: point.y - handle.y } };
+    this.overlay.setPointerCapture(event.pointerId); this.sampleDrag = { pointer: { x: event.clientX, y: event.clientY }, origin:view.world(handle), offset: { x: point.x - handle.x, y: point.y - handle.y } }; this.sampleSnap=null;
   }
   sampleMove(event) {
     if (!this.sampleDrag) return;
     this.sampleDrag.pointer = { x: event.clientX, y: event.clientY };
-    const view = this.sampleView(); const point = view.world({ x: event.clientX - view.left - this.sampleDrag.offset.x, y: event.clientY - view.top - this.sampleDrag.offset.y });
-    try { const area = applyNoiseSample(this.area(), this.context.tempo, this.sampleSeconds, this.sampleMode, point); this.draftChart = this.replaceArea(area); this.fitSampleView(); this.invalidate(); } catch (error) { this.notify(error.message, 'warning'); this.sampleDrag = null; }
+    const view = this.sampleView(); let point = view.world({ x: event.clientX - view.left - this.sampleDrag.offset.x, y: event.clientY - view.top - this.sampleDrag.offset.y });
+    try {
+      const settings=this.sampleTargets?{...samplingPreferences(),stepX:samplingPreferences().stepX*view.positionScale.x,stepY:samplingPreferences().stepY*view.positionScale.y}:{gridSnap:false,objectSnap:false}, targets=this.sampleTargets?.get(this.sampleMode.base,this.context.tempo,this.sampleSeconds,view.positionScale,{areaIndex:this.selected,renderer:this.context.previewVisible?this.context.preview:this.context.realtimePreview});
+      if((!this.sampleMode.type||['moveXEvents','moveYEvents'].includes(this.sampleMode.type)||this.sampleMode.field==='anchor') && settings.coordinates!=='local'){const options={settings,targets,scale:view.scale,previous:this.sampleSnap,origin:this.sampleDrag.origin,free:event.altKey};if(['moveXEvents','moveYEvents'].includes(this.sampleMode.type)&&this.sampleMode.field!=='anchor'){const base=noiseSampleHandle(this.area(),this.context.tempo,this.sampleSeconds,this.sampleMode,view.positionScale),probeArea=structuredClone(this.area()),e=probeArea[this.sampleMode.type][this.sampleMode.index];e[this.sampleMode.field]+=1;const probe=noiseSampleHandle(probeArea,this.context.tempo,this.sampleSeconds,this.sampleMode,view.positionScale);this.sampleSnap=snapConstrainedPoint(point,base,{x:probe.x-base.x,y:probe.y-base.y},options);}else this.sampleSnap=snapSamplePoint(point,options);point=this.sampleSnap;}
+      let area = applyNoiseSample(this.area(), this.context.tempo, this.sampleSeconds, this.sampleMode, point, view.positionScale);
+      const {type,index,field}=this.sampleMode;
+      if(type==='rotateEvents' && field!=='anchor'){const entry=area[type][index],result=snapSampleAngle(entry[field],{settings,targets,previous:this.angleSnap,free:event.altKey});this.angleSnap=result;entry[field]=result.angle;if(entry.inst)entry[field==='start'?'end':'start']=result.angle;}
+      else if(['moveXEvents','moveYEvents'].includes(type) && field!=='anchor' && settings.coordinates==='local'){
+        const entry=area[type][index],axis=type==='moveYEvents'?'y':'x',probe=structuredClone(area);probe[type][index][field]+=1;
+        const a=noiseSampleHandle(area,this.context.tempo,this.sampleSeconds,this.sampleMode,view.positionScale),b=noiseSampleHandle(probe,this.context.tempo,this.sampleSeconds,this.sampleMode,view.positionScale),localScale=view.scale*Math.hypot(b.x-a.x,b.y-a.y);
+        const object=snapConstrainedPoint(point,a,{x:b.x-a.x,y:b.y-a.y},{settings:{...settings,gridSnap:false},targets,scale:view.scale,previous:this.sampleSnap,free:event.altKey});
+        if(object.guides.length){this.sampleSnap=object;area=applyNoiseSample(area,this.context.tempo,this.sampleSeconds,this.sampleMode,object,view.positionScale);}
+        else{this.sampleSnap=null;const snapped=snapSamplePoint({[axis]:entry[field]},{settings:samplingPreferences(),scale:localScale,previous:this.sampleLocalSnap,free:event.altKey});this.sampleLocalSnap=snapped;entry[field]=snapped[axis];if(entry.inst)entry[field==='start'?'end':'start']=entry[field];}
+      }
+      this.draftChart = this.replaceArea(area); this.fitSampleView(); this.invalidate();
+    } catch (error) { this.notify(error.message, 'warning'); this.sampleDrag = null; }
   }
   previewState() {
-    if (!this.sampleMode) return { chart: this.chart };
+    if(this.sampleMode && this.sampleMode.base!==this.context.session.chart){this.endSample(false);return {chart:this.chart};}
+    if (!this.sampleMode) return { chart: (this.batchVisible?.() !== false && this.batch?.previewChart) || this.chart };
     this.fitSampleView();
     if (this.samplePreviewCache?.source === this.chart && this.samplePreviewCache.mode === this.sampleMode) return this.samplePreviewCache.result;
     const chart = this.chart; const area = this.area(); const target = this.sampleMode;
@@ -539,11 +631,17 @@ export class NoiseAreaEditor {
   drawSample() {
     if (!this.sampleMode) return;
     const { context, width, height } = prepareCanvas(this.overlay); const view = this.sampleView(); const area = this.area();
-    const sample = sampleEditingArea(area, this.context.tempo, this.sampleSeconds, this.sampleMode); const points = sample.points.map(view.screen);
+    const rotation=this.sampleMode.type==='rotateEvents'&&this.sampleMode.field!=='anchor'; const rotationAnchor=rotation?area.rotateEvents[this.sampleMode.index].anchor:null;
+    drawSamplingGrid(context,view,{rotation,center:rotationAnchor?{x:rotationAnchor.x*view.positionScale.x,y:rotationAnchor.y*view.positionScale.y}:{x:0,y:0},positionScale:view.positionScale});drawSnapGuides(context,view,this.sampleSnap);
+    const rawRead=this.sampleMode.type?area[this.sampleMode.type][this.sampleMode.index][this.sampleMode.field]:null;const read=typeof rawRead==='number'?rawRead:null;
+    this.sampleControls?.updateValues(read===null?rawRead??area[this.sampleMode.field]:{value:read});
+    const position=noiseSampleHandle(area,this.context.tempo,this.sampleSeconds,this.sampleMode,view.positionScale);
+    this.sampleControls?.sync(rotation,`${t('spatial.noiseNumber',{number:this.selected})} · ${t('spatial.beatReadout',{beat:displayNumber(this.context.tempo.beat(this.sampleSeconds))})}\n${t('spatial.position')} ${displayPosition(position)}${rotation?'　'+displayNumber(read)+'°':''}`);
+    const sample = previewNoiseGeometry(sampleEditingArea(area, this.context.tempo, this.sampleSeconds, this.sampleMode), view.positionScale); const points = sample.points.map(view.screen);
     context.strokeStyle = '#67efa4'; context.lineWidth = 2; context.beginPath(); points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y)); context.closePath(); context.stroke();
     const anchor = this.sampleMode.type && noiseHasAnchor(this.sampleMode.type) ? area[this.sampleMode.type][this.sampleMode.index].anchor : null;
-    if (anchor) { const point = view.screen(anchor); context.strokeStyle = '#f0ca67'; context.beginPath(); context.moveTo(point.x - 9, point.y); context.lineTo(point.x + 9, point.y); context.moveTo(point.x, point.y - 9); context.lineTo(point.x, point.y + 9); context.stroke(); context.fillStyle = '#f0ca67'; context.fillText(t('noise-area.sc7d0648'), point.x + 12, point.y); }
-    const handle = view.screen(noiseSampleHandle(area, this.context.tempo, this.sampleSeconds, this.sampleMode)); context.fillStyle = '#5cffa1'; context.beginPath(); context.arc(handle.x, handle.y, 9, 0, Math.PI * 2); context.fill(); context.strokeStyle = '#152a1d'; context.stroke();
+    if (anchor) { const point = view.screen({ x: anchor.x * view.positionScale.x, y: anchor.y * view.positionScale.y }); context.strokeStyle = '#f0ca67'; context.beginPath(); context.moveTo(point.x - 9, point.y); context.lineTo(point.x + 9, point.y); context.moveTo(point.x, point.y - 9); context.lineTo(point.x, point.y + 9); context.stroke(); context.fillStyle = '#f0ca67'; context.fillText(t('noise-area.sc7d0648'), point.x + 12, point.y); }
+    const handle = view.screen(noiseSampleHandle(area, this.context.tempo, this.sampleSeconds, this.sampleMode, view.positionScale)); context.fillStyle = '#5cffa1'; context.beginPath(); context.arc(handle.x, handle.y, 9, 0, Math.PI * 2); context.fill(); context.strokeStyle = '#152a1d'; context.stroke();
     context.fillStyle = '#c8ffdf'; context.font = '14px sans-serif'; context.fillText(t('noise-area.s7872d97') + round(this.context.tempo.beat(this.sampleSeconds)), 18, height - 20);
     if (handle.x < 0 || handle.x > width || handle.y < 0 || handle.y > height) context.fillText(t('noise-area.s3d7275e'), 18, height - 42);
   }
@@ -551,7 +649,8 @@ export class NoiseAreaEditor {
     this.syncChrome(); if (!this.active || this.context.previewVisible || this.sampleMode) return;
     const { context, width, height } = prepareCanvas(this.canvas); const layout = this.layout();
     this.drawingLayout = layout; this.drawingContext = this.context;
-    try { this.drawTimeline(context, width, height, layout); } finally { this.drawingLayout = null; this.drawingContext = null; }
+    this.drawingChart = this.batchVisible?.() !== false ? this.batch?.previewChart : null;
+    try { this.drawTimeline(context, width, height, layout); } finally { this.drawingLayout = null; this.drawingContext = null; this.drawingChart = null; }
   }
   drawTimeline(context, width, height, layout) {
     const { timeline } = this.context;
@@ -563,7 +662,7 @@ export class NoiseAreaEditor {
       if (major) { context.fillStyle = '#d0d0d4'; context.fillText(String(beat), layout.split + 2, vertical - 3); }
     }
     context.lineWidth = 1;
-    for (let index = 0; index <= timeline.gridCount; index++) { const horizontal = 12 + index * (layout.split - 24) / timeline.gridCount; context.strokeStyle = '#71767c35'; context.beginPath(); context.moveTo(horizontal, HEADER_HEIGHT); context.lineTo(horizontal, height); context.stroke(); }
+    if (timeline.snapX !== false) for (let index = 0; index <= timeline.gridCount; index++) { const horizontal = 12 + index * (layout.split - 24) / timeline.gridCount; context.strokeStyle = '#71767c35'; context.beginPath(); context.moveTo(horizontal, HEADER_HEIGHT); context.lineTo(horizontal, height); context.stroke(); }
     for (let index = 0; index <= 6; index++) { const horizontal = layout.eventLeft + index * layout.eventWidth; context.strokeStyle = '#7f838755'; context.beginPath(); context.moveTo(horizontal, HEADER_HEIGHT); context.lineTo(horizontal, height); context.stroke(); }
     this.rects = [];
     const drawEntry = (entry, index, type, x, entryWidth, ghost = false, seamless = false, range = null, clipped = false, curveBatches = null) => {

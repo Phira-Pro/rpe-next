@@ -15,6 +15,8 @@ export const DEFAULT_HOTKEYS = {
   SwitchUI: 'LEFTALT&N', ResetCamera: 'LEFTCTRL&M', CurveBegin: 'LEFTCTRL&F', CurveEnd: 'LEFTCTRL&G',
   ToggleMultiLine: 'J', SwitchMultiLineMode: 'K', DirectPlacement: 'LEFTALT&D',
   PerformanceMonitor: 'F10',
+  EditorRecording: 'LEFTCTRL&LEFTSHIFT&U',
+  KeyDisplay: 'LEFTCTRL&LEFTSHIFT&K',
   ShowLineInfo: 'TAB', PageLeft: 'LEFTARROW', PageRight: 'RIGHTARROW', PageUp: 'UPARROW', PageDown: 'DOWNARROW',
 };
 export const SUPPORTED_SETTINGS = ['CutRho', 'MusicVolume', 'maxHistorySize', 'AutoSave', 'AutoSaveGap', 'AutoSaveLimit', 'FpsLimit', 'showHotkey', 'SEVolume', 'NoteSize', 'LineScale', 'GridlineCount', 'ScrollSpeed', 'Alpha', 'RealTimeAlpha', 'ScrollAcc', 'ratioWidth', 'ratioHeight', 'BarWidth', 'BarAlpha', 'HighLight', 'autoplayT', 'showViewUI'];
@@ -89,7 +91,7 @@ export function shortcutKey(event) {
   return normalizeShortcutKey(keyNames[key] ?? key);
 }
 
-export function shortcutMatches(event, specification) {
+export function shortcutMatches(event, specification, allowExtraModifiers = false) {
   if (typeof specification !== 'string') return false;
   const parsed = parseShortcut(specification);
   if (parsed.error || !parsed.value) return false;
@@ -99,10 +101,16 @@ export function shortcutMatches(event, specification) {
   const alt = parts.some(part => ['LEFTALT', 'RIGHTALT', 'ALT'].includes(part));
   const keys = parts.filter(part => !/^(LEFT|RIGHT)?(CTRL|SHIFT|ALT)$/.test(part));
   const key = shortcutKey(event);
-  return keys.length === 1 && keys[0] === key && control === Boolean(event.ctrlKey || event.metaKey) && shift === Boolean(event.shiftKey) && alt === Boolean(event.altKey);
+  return keys.length === 1 && keys[0] === key && (allowExtraModifiers
+    ? (!control || Boolean(event.ctrlKey || event.metaKey)) && (!shift || Boolean(event.shiftKey)) && (!alt || Boolean(event.altKey))
+    : control === Boolean(event.ctrlKey || event.metaKey) && shift === Boolean(event.shiftKey) && alt === Boolean(event.altKey));
 }
 
-export function shortcutAction(event, preferences, area = 'notes', { hasSelection = false } = {}) {
+export function shortcutAction(event, preferences, area = 'notes', { hasSelection = false, deleteWithExtraKeys = false } = {}) {
+  if (hasSelection && deleteWithExtraKeys) {
+    const remove = ['Delete', 'QuickDelete'].find(action => shortcutMatches(event, preferences?.hotkeys?.[action] ?? DEFAULT_HOTKEYS[action], true));
+    if (remove) return remove;
+  }
   const actions = Object.keys(DEFAULT_HOTKEYS).filter(action => {
     if (action.startsWith('Page')) return hasSelection;
     if (hasSelection && ['LastBeat', 'NextBeat'].includes(action)) return false;

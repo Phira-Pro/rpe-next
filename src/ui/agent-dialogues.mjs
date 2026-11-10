@@ -2,7 +2,7 @@ import { AgentConversations, conversationMessages } from '../application/agent-c
 import { renderAgentMarkdown } from './agent-markdown.mjs';
 import { AgentConversationRepository } from '../platform/agent-store.mjs';
 import { showAgentExchange } from './agent-inspector.mjs';
-import { AGENT_CORE_TOOLS, agentContextPolicy, agentContextUsage, agentContextSignature, estimateAgentTokens, prepareAgentHistory } from '../core/agent-context.mjs';
+import { agentContextPolicy, agentContextUsage, agentContextSignature, estimateAgentTokens, prepareAgentHistory, agentRuntimeContext, agentToolNames, agentCacheUsage } from '../core/agent-context.mjs';
 import { t } from '../i18n.mjs';
 import { agentEffortLabel } from '../core/agent-routing.mjs';
 import { AgentRoutingControls } from './agent-routing-controls.mjs';
@@ -14,9 +14,17 @@ const button = (label, action) => { const node = text('button', label); node.typ
 const detail = label => { const node = document.createElement('details'); node.append(text('summary', label)); return node; };
 const pretty = value => JSON.stringify(value, null, 2);
 const time = milliseconds => (milliseconds / 1000).toFixed(2) + ' s';
+export function submitAgentText(event, submit) {
+  if (event.defaultPrevented || event.key !== 'Enter' || event.shiftKey || event.altKey || event.isComposing || event.keyCode === 229) return false;
+  event.preventDefault(); event.stopPropagation();
+  if (!event.repeat) submit();
+  return true;
+}
 export function agentUsageText(stats) {
   if (!stats) return '';
-  return [stats.model, stats.reasoningEffort ? agentEffortLabel(stats.reasoningEffort) : '', stats.startedAt ? new Date(stats.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '', time(stats.durationMs ?? 0), stats.usageKnown ? t('agent-dialogues.s1f73712', { p0: stats.promptTokens, p1: stats.completionTokens, p2: stats.totalTokens }) : t('agent-dialogues.s0e03625'), stats.reasoningTokens ? t('agent-dialogues.s7321f8c', { p0: stats.reasoningTokens }) : '', stats.cachedTokens ? t('agent-dialogues.s5f7da44', { p0: stats.cachedTokens }) : '', stats.requests ? t('agent-dialogues.s3b8c12f', { p0: stats.requests }) : '', stats.tools ? t('agent-dialogues.sbc85fe9', { p0: stats.tools }) : ''].filter(Boolean).join(' · ');
+  const cache = stats.cacheKnown ? t('agent-cache.usage', { hit: stats.cachedTokens, miss: stats.uncachedTokens, ratio: ((stats.cachedTokens + stats.uncachedTokens) ? 100 * stats.cachedTokens / (stats.cachedTokens + stats.uncachedTokens) : 0).toFixed(1) }) : stats.cachedTokens ? t('agent-dialogues.s5f7da44', { p0: stats.cachedTokens }) : '';
+  const output = stats.maxTokens && stats.maxTokens !== stats.requestedMaxTokens ? t('agent-output.applied', { limit: stats.maxTokens, requested: stats.requestedMaxTokens }) : '';
+  return [stats.model, stats.reasoningEffort ? agentEffortLabel(stats.reasoningEffort) : '', stats.startedAt ? new Date(stats.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '', time(stats.durationMs ?? 0), stats.usageKnown ? t('agent-dialogues.s1f73712', { p0: stats.promptTokens, p1: stats.completionTokens, p2: stats.totalTokens }) : t('agent-dialogues.s0e03625'), stats.reasoningTokens ? t('agent-dialogues.s7321f8c', { p0: stats.reasoningTokens }) : '', cache, output, stats.requests ? t('agent-dialogues.s3b8c12f', { p0: stats.requests }) : '', stats.tools ? t('agent-dialogues.sbc85fe9', { p0: stats.tools }) : ''].filter(Boolean).join(' · ');
 }
 
 export class AgentDialogues {
@@ -96,9 +104,13 @@ export class AgentDialogues {
     this.attachments = text('div', '', 'agent-image-list agent-composer-images'); this.attachments.hidden = true;
     panel.input.addEventListener('paste', event => this.pasteImages(event));
     panel.input.oninput = () => { this.store.current.draft = panel.input.value; this.save(); this.updateBusy(); };
-    panel.input.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); this.composer.requestSubmit(); } };
+    panel.input.onkeydown = event => { submitAgentText(event, () => {
+      if ((event.ctrlKey || event.metaKey) && panel.agent?.busy) this.interrupt(panel.input.value);
+      else this.composer.requestSubmit();
+    }); };
     const actions = text('div', '', 'agent-composer-actions'); panel.send = button(t('agent-dialogues.s1214d63'), () => {}); panel.send.type = 'submit'; panel.stop = button(t('agent-dialogues.sa17f70a'), () => { this.pauseQueue(); panel.agent.stop(); }); panel.stop.hidden = true;
     this.interruptButton = button(t('agent-dialogues.s90de0b5'), () => this.interrupt(panel.input.value)); this.interruptButton.hidden = true; actions.append(panel.status, this.routing.toggle, panel.send, this.interruptButton, panel.stop, this.routing.menu);
+    this.interruptButton.title = t('agent-dialogues.interruptShortcut');
     this.resumeQueue = button(t('agent-dialogues.s39faf0c'), () => { for (const { turn } of this.queued()) { turn.paused = false; this.save(turn); } this.autoQueue = true; this.drain(); }); this.resumeQueue.className = 'agent-queue-resume'; this.resumeQueue.hidden = true;
     this.composer.append(this.attachments, panel.input, actions); this.composer.onsubmit = event => { event.preventDefault(); this.send(panel.input.value); };
     panel.host.append(topbar, controls, this.background, this.viewport, this.resumeQueue, this.composer); this.updateRouting();
@@ -151,6 +163,7 @@ export class AgentDialogues {
       const view = this.running?.view, round = this.round; if (!view || !round) return;
       round.source = event.detail.text; round.thinking = event.detail.reasoning || round.thinking; this.renderRound(round, true);
       const usage = event.detail.usage, stats = { model: event.detail.model, durationMs: event.detail.durationMs, usageKnown: Boolean(usage), promptTokens: usage?.prompt_tokens ?? 0, completionTokens: usage?.completion_tokens ?? 0, totalTokens: usage?.total_tokens ?? 0, reasoningTokens: usage?.completion_tokens_details?.reasoning_tokens ?? 0 };
+      Object.assign(stats, agentCacheUsage(usage));
       this.roundMetrics(round, stats);
       if (event.detail.final) { view.answer.hidden = false; renderAgentMarkdown(view.answerContent, event.detail.text); if (event.detail.text) round.content.remove(); }
       if (!round.thinking && (event.detail.final || !round.source)) round.element.remove();
@@ -317,10 +330,9 @@ export class AgentDialogues {
     const running = this.running?.record === record && this.panel.agent.busy;
     let usage = running && this.panel.agent.contextUsage ? this.panel.agent.contextUsage : compatible ? agentContextUsage(stored.tokens, policy, stored.estimated) : null;
     if (!usage) {
-      const messages = prepareAgentHistory(conversationMessages(record)), selected = new Set(AGENT_CORE_TOOLS);
-      for (const message of messages) for (const call of message.tool_calls ?? []) selected.add(call.function.name);
-      const system = config.prompt + t('agent-dialogues.s1f13b73') + JSON.stringify(this.panel.adapter.summary()) + t('agent-dialogues.s112fe43') + config.permission + t('agent-dialogues.s2078fe0') + JSON.stringify(capabilities);
-      usage = agentContextUsage(estimateAgentTokens({ system, tools: this.panel.commands.tools().filter(tool => selected.has(tool.function.name)), messages }), policy);
+      const messages = prepareAgentHistory(conversationMessages(record)), selected = agentToolNames(messages);
+      messages.push(agentRuntimeContext(this.panel.adapter.summary(), config, capabilities));
+      usage = agentContextUsage(estimateAgentTokens({ system: config.prompt, tools: this.panel.commands.tools().filter(tool => selected.has(tool.function.name)), messages }), policy);
     }
     const ratio = Math.max(0, usage.ratio), percentage = (ratio * 100).toFixed(1) + '%';
     const number = usage.tokens >= 1000000 ? (usage.tokens / 1000000).toFixed(2) + 'M' : usage.tokens >= 1000 ? (usage.tokens / 1000).toFixed(1) + 'K' : String(usage.tokens);
@@ -436,6 +448,8 @@ export class AgentDialogues {
     this.panel.notify(t('agent-dialogues.sd457b0d') + args.question.replace(/\s+/g, ' ').slice(0, 120), 'warning');
     return this.pending(signal, finish => { const card = text('form', '', 'agent-question'); card.append(text('strong', t('agent-dialogues.s70172e2'))); const question = text('div', '', 'agent-content'); renderAgentMarkdown(question, args.question); card.append(question);
       const input = document.createElement('textarea'); input.rows = 3; input.setAttribute('aria-label', t('agent-dialogues.s354b3f3')); const reply = value => { this.running?.turn.process.push({ kind: 'question', question: args.question, answer: value }); if (this.running) this.save(this.running.turn); card.append(text('p', value)); finish({ answer: value }); };
+      input.title = t('agent-dialogues.replyShortcut');
+      input.onkeydown = event => { submitAgentText(event, () => card.requestSubmit()); };
       const choices = text('div', '', 'agent-actions agent-question-choices'); choices.setAttribute('role', 'group'); choices.setAttribute('aria-label', t('agent-dialogues.s824f73d')); for (const choice of args.choices ?? []) choices.append(button(choice, () => reply(choice))); card.append(choices, input, button(t('agent-dialogues.s3f5ee82'), () => { if (input.value.trim()) reply(input.value.trim()); })); card.onsubmit = event => { event.preventDefault(); if (input.value.trim()) reply(input.value.trim()); }; return card;
     }, t('agent-dialogues.sac69952'));
   }

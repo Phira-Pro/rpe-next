@@ -117,7 +117,7 @@ test('音符框选跨到事件区结束，选框越过边界且不创建事件�
   const { session, timeline } = selectionFixture();
   timeline.down(pointer(100, 550, true)); timeline.up(pointer(100, 550, true));
   timeline.updateRectangle(pointer(900, 300)); assert.equal(timeline.drag.current.x, 900);
-  timeline.eventInteraction.down(pointer(900, 300));
+  timeline.eventInteraction.down(pointer(900, 300, true));
   assert.deepEqual([...session.selection], [0]); assert.equal(session.eventSelection.size, 0);
   assert.equal(session.focus, 'notes'); assert.equal(timeline.drag, null); assert.equal(timeline.eventInteraction.drag, null);
 });
@@ -141,7 +141,7 @@ test('框选起点在滚轮滚动后保持绝对时间，选中跨越视野的�
     timeline.origin = last;
     assert.equal(drag.startSeconds, anchorSeconds);
     assert.equal(timeline.rectangleStart(drag).y, timeline.vertical(first));
-    timeline.finishRectangle(pointer(endHorizontal, timeline.vertical(last)));
+    timeline.finishRectangle(pointer(endHorizontal, timeline.vertical(last), true));
     assert.deepEqual(kind === 'notes' ? [...session.selection] : [...session.eventSelection], kind === 'notes' ? [1, 2, 3] : ['moveXEvents:1', 'moveXEvents:2', 'moveXEvents:3']);
   }
 });
@@ -150,8 +150,160 @@ test('放置模式也可 Shift 开始事件框选，跨到音符区结束时只�
   const { session, timeline } = selectionFixture(); timeline.tool = 1;
   timeline.eventInteraction.down(pointer(950, 550, true)); timeline.eventInteraction.up(pointer(950, 550, true));
   timeline.updateRectangle(pointer(100, 300)); assert.equal(timeline.eventInteraction.drag.current.x, -420);
-  timeline.down(pointer(100, 300));
+  timeline.down(pointer(100, 300, true));
   assert.deepEqual([...session.eventSelection], ['moveXEvents:0']); assert.equal(session.selection.size, 0);
   assert.equal(session.focus, 'events'); assert.equal(timeline.eventInteraction.drag, null); assert.equal(timeline.drag, null);
   assert.equal(session.notes.length, 1);
+});
+
+test('音符与事件框选只允许 Shift 左键或中键收框，普通左右键不会覆盖正在进行的框选', () => {
+  for (const area of ['notes', 'events']) for (const finish of ['shift', 'middle']) {
+    const { session, timeline } = selectionFixture(); timeline.tool = 1;
+    const interaction = area === 'notes' ? timeline : timeline.eventInteraction;
+    const startX = area === 'notes' ? 100 : 950, endX = area === 'notes' ? 400 : 530;
+    interaction.down(pointer(startX, 550, true)); interaction.up(pointer(startX, 550, true));
+    const original = timeline.rectangleSelection().drag, chart = session.chart;
+    for (const [button, shiftKey] of [[0, false], [2, false], [2, true]]) {
+      const event = { ...pointer(endX, 300), button, shiftKey };
+      assert.equal(timeline.finishRectangle(event), false);
+      interaction.down(event); interaction.up(event);
+      assert.equal(timeline.rectangleSelection().drag, original); assert.equal(session.chart, chart);
+      assert.equal(session.selection.size, 0); assert.equal(session.eventSelection.size, 0);
+    }
+    interaction.down({ ...pointer(endX, 300, finish === 'shift'), button: finish === 'middle' ? 1 : 0 });
+    assert.equal(timeline.rectangleSelection(), null);
+    assert.equal(area === 'notes' ? session.selection.size : session.eventSelection.size, 1);
+    assert.equal(session.chart, chart); assert.equal(timeline.pendingHold, null); assert.equal(timeline.eventInteraction.pending, null);
+  }
+});
+
+test('多线未收框时普通左键平移超宽视区，保留绝对起点、选择和收框规则', () => {
+  for (const area of ['notes', 'events']) {
+    const { session, timeline } = selectionFixture();
+    session.chart.judgeLineList.push(structuredClone(session.line), structuredClone(session.line));
+    session.multiLineEnabled = true; session.multiLineIndices = [0,1,2]; session.multiLineMode = area; session.multiLineMerge = false;
+    timeline.multiLineWidth = 400; timeline.multiLineEventWidth = 400; timeline.multiLineEventWidthExplicit = true;
+    const interaction = area === 'notes' ? timeline : timeline.eventInteraction, base = area === 'notes' ? 0 : 520;
+    const canvas = area === 'notes' ? timeline.notesCanvas : timeline.eventsCanvas;
+    let capture;
+    canvas.setPointerCapture = id => { capture = id; }; canvas.hasPointerCapture = id => capture === id;
+    canvas.releasePointerCapture = () => { capture = null; };
+    interaction.down(pointer(base+80,550,true)); interaction.up(pointer(base+80,550,true));
+    const drag = timeline.rectangleSelection().drag, seconds = drag.startSeconds, worldX = drag.startWorldX, chart = session.chart;
+    interaction.down(pointer(base+400,500));
+    assert.equal(capture,1); assert.ok(drag.pan);
+    interaction.move(pointer(base+100,480));
+    assert.equal(timeline.multiLineScroll[area],300);
+    assert.equal(drag.startSeconds,seconds); assert.equal(drag.startWorldX,worldX);
+    assert.equal(timeline.rectangleStart(drag).x,worldX-300);
+    interaction.up(pointer(base+100,480));
+    assert.equal(timeline.rectangleSelection().drag,drag); assert.equal(drag.pan,undefined); assert.equal(capture,null);
+    assert.equal(session.chart,chart); assert.equal(session.selection.size,0); assert.equal(session.eventSelection.size,0);
+    assert.equal(timeline.finishRectangle(pointer(base+400,300)),false);
+    // A cancelled pan does not use the cancellation event's (possibly zero) coordinates.
+    assert.equal(timeline.beginRectanglePan(pointer(base+400,500),canvas),true);
+    timeline.updateRectangle(pointer(base-5000,500));
+    const maximum = timeline.multiLineViewportOffset(500,area);
+    assert.equal(maximum,732);
+    assert.equal(timeline.endRectanglePan({ ...pointer(0,0),type:'pointercancel' }),true);
+    assert.equal(timeline.multiLineScroll[area],maximum); assert.equal(timeline.rectangleSelection().drag,drag);
+    assert.equal(timeline.beginRectanglePan(pointer(base+100,500),canvas),true);
+    timeline.updateRectangle(pointer(base+6000,500)); timeline.endRectanglePan();
+    assert.equal(timeline.multiLineScroll[area],0);
+    assert.equal(timeline.finishRectangle({ ...pointer(base+400,300),button:1 }),true);
+    assert.equal(timeline.rectangleSelection(),null);
+    // Escape uses cancelPlacement and releases a captured pointer as well.
+    interaction.down(pointer(base+80,550,true)); interaction.up(pointer(base+80,550,true));
+    timeline.beginRectanglePan(pointer(base+400,500),canvas); timeline.cancelPlacement();
+    assert.equal(capture,null); assert.equal(timeline.rectangleSelection(),null);
+  }
+});
+
+test('框选平移仅适用于超宽多线分列，其他按键、面板和可完全显示的列不启动', () => {
+  const { session,timeline } = selectionFixture();
+  timeline.down(pointer(80,550,true)); timeline.up(pointer(80,550,true));
+  assert.equal(timeline.beginRectanglePan(pointer(400,500),timeline.notesCanvas),false);
+  session.chart.judgeLineList.push(structuredClone(session.line)); session.multiLineEnabled=true; session.multiLineIndices=[0,1];
+  timeline.multiLineWidth=200;
+  assert.equal(timeline.beginRectanglePan(pointer(400,500),timeline.notesCanvas),false);
+  timeline.multiLineWidth=400;
+  for(const modifier of ['shiftKey','ctrlKey','altKey','metaKey']) assert.equal(timeline.beginRectanglePan({...pointer(400,500),[modifier]:true},timeline.notesCanvas),false);
+  assert.equal(timeline.beginRectanglePan({...pointer(400,500),button:2},timeline.notesCanvas),false);
+  assert.equal(timeline.beginRectanglePan(pointer(400,500),timeline.eventsCanvas),false);
+  session.multiLineMode='notes'; session.multiLineMerge=true;
+  assert.equal(timeline.beginRectanglePan(pointer(400,500),timeline.notesCanvas),false);
+});
+
+test('框选完成记录最终鼠标坐标，跨区和相同选区的再次框选都刷新', () => {
+  for (const area of ['notes', 'events']) for (const multi of [false, true]) {
+    const { session, timeline } = selectionFixture(), completions = [];
+    if (multi) {
+      session.chart.judgeLineList.push(structuredClone(session.line));
+      session.multiLineEnabled = true; session.multiLineMode = area; session.multiLineIndices = [0, 1];
+    }
+    timeline.onSelectionComplete = (kind, point) => completions.push({ kind, point });
+    const interaction = area === 'notes' ? timeline : timeline.eventInteraction, base = area === 'notes' ? 0 : 520;
+    const chart = session.chart;
+    for (const endX of [base + 800, base + 700]) {
+      interaction.down(pointer(base + 10, 550, true)); interaction.up(pointer(base + 10, 550, true));
+      assert.equal(completions.length, endX === base + 800 ? 0 : 1);
+      timeline.finishRectangle(pointer(endX, 300, true));
+      assert.deepEqual(completions.at(-1), { kind: area, point: { x: endX - base, y: 300 } });
+    }
+    assert.equal(completions.length, 2); assert.equal(session.chart, chart);
+  }
+});
+
+test('空点任意编辑区保留单选、多选、所属线、当前面板焦点和多选控制球意图', () => {
+  for (const area of ['notes', 'events']) for (const multi of [false, true]) for (const count of [1, 2]) {
+    const { session, timeline } = selectionFixture();
+    session.focus = area; session.multiSelectionIntent = area;
+    session.line.notes.push(createNote(1, 1, 0));
+    session.line.eventLayers[0].moveXEvents.push(createEvent(10, 20, 1, 2));
+    if (area === 'notes') session.selection = new Set(Array.from({ length: count }, (_, i) => i));
+    else session.eventSelection = new Set(Array.from({ length: count }, (_, i) => `moveXEvents:${i}`));
+    if (multi) {
+      session.chart.judgeLineList.push(structuredClone(session.line));
+      session.multiLineEnabled = true; session.multiLineMode = area; session.multiLineIndices = [0, 1];
+      if (area === 'notes') session.multiLineSelection = new Map([[0, new Set(session.selection)], [1, new Set([0])]]);
+      else session.multiEventSelection = new Map([[0, new Set(session.eventSelection)], [1, new Set(['moveXEvents:0'])]]);
+    }
+    const before = session.selectionState(), chart = session.chart;
+    for (const [interaction, x] of [[timeline, 30], [timeline.eventInteraction, 990]]) {
+      interaction.down(pointer(x, 50)); interaction.up(pointer(x, 50));
+      assert.deepEqual(session.selectionState(), before, `${area}/${multi}/${count}`);
+      assert.equal(session.multiSelectionIntent, area); assert.equal(session.focus, area); assert.equal(session.chart, chart);
+    }
+  }
+});
+
+test('Ctrl 点选和划选在释放时报告最终坐标，空点不报告新的选择完成', () => {
+  for (const area of ['notes', 'events']) {
+    const { session, timeline } = selectionFixture(), completions = [], base = area === 'notes' ? 0 : 520;
+    timeline.onSelectionComplete = (kind, point) => completions.push({ kind, point });
+    const interaction = area === 'notes' ? timeline : timeline.eventInteraction;
+    const x = area === 'notes' ? timeline.noteHorizontal(0, 0) : 130;
+    const y = area === 'notes' ? timeline.noteVertical(session.notes[0]) : 400;
+    interaction.down({ ...pointer(base + x, y), ctrlKey: true }); interaction.up(pointer(base + x + 1, y + 1));
+    assert.deepEqual(completions.at(-1), { kind: area, point: { x: x + 1, y: y + 1 } });
+    interaction.down(pointer(base + 30, 50)); interaction.up(pointer(base + 30, 50));
+    assert.equal(completions.length, 1);
+    interaction.down(pointer(base + 30, 50)); interaction.move(pointer(base + 100, 100)); interaction.up(pointer(base + 110, 110));
+    assert.deepEqual(completions.at(-1), { kind: area, point: { x: 110, y: 110 } });
+    assert.equal(completions.length, 2);
+  }
+});
+
+test('超大谱异步选择保留结束点，并丢弃已被后续选择或换谱替代的完成通知', async () => {
+  const { session, timeline } = selectionFixture(), completions = [];
+  let resolve;
+  const pending = new Promise(done => { resolve = done; });
+  session.largeDocument = { busy: true, pending };
+  timeline.onSelectionComplete = (area, point) => completions.push({ area, point });
+  timeline.completeSelection('notes', pointer(300, 400)); timeline.cursor = { x: 10, y: 20 };
+  resolve(); await pending; await Promise.resolve();
+  assert.deepEqual(completions, [{ area: 'notes', point: { x: 300, y: 400 } }]);
+  const next = new Promise(done => { resolve = done; }); session.largeDocument.pending = next;
+  timeline.completeSelection('notes', pointer(250, 350)); session.largeDocument.pending = Promise.resolve();
+  resolve(); await next; await Promise.resolve(); assert.equal(completions.length, 1);
 });
