@@ -32,7 +32,13 @@ AI发送栏的 `.agent-route-toggle` 将模型与推理档位合并显示，`.ag
 
 界面的原始功能节点仍由应用拥有，皮肤操作的是这些节点的呈现。`organize` 可以移动列入白名单的命令按钮，其原有事件和禁用状态保留。其他组件可以通过 CSS 的 flex/grid/order 等重排，也可以通过 `hide` 从界面隐藏控件；隐藏后不占位，内部节点继续存在。v1 不允许任意添加 HTML、替换表单、销毁功能节点或将画布重新挂接到另一个父节点。
 
-没有自定义皮肤时直接使用编辑器现有样式，不加载皮肤基础覆盖层。缺省皮肤不是一个导入包，其保留标识为 `default`。本版本另外内置“墨线 Inkline(cmdysj)”，可直接在设置中选择。
+没有自定义皮肤时直接使用编辑器现有样式，不加载皮肤基础覆盖层。缺省皮肤不是一个导入包，其保留标识为 `default`。本版本另外内置“墨线 Inkline(cmdysj)”和“RPE Classic · 经典编辑器”，可直接在设置中选择。
+
+RPE Classic 的静态皮肤与配套 `rpe-classic-layout` 模组随本体配套分发。选择该皮肤自动加载对应布局，切换其他皮肤卸载布局补丁与监听；安全模式或手动停用模组时保留墨线回退。两者版本必须一致，导入包不能覆盖内置版本，更新随本体分发。RPE Classic 后续界面适配由该皮肤维护方验证，不纳入每轮本体 UI 回归。未选用时只登记轻量元数据，不读取该皮肤的完整样式、贴图和模组代码。
+
+内置资源索引可使用 `deferred`、`metadata` 和 `shared` 实现延迟读取和重复资源复用；这些仅属于宿主内置目录，不是 `.rpenskin` 协议新增字段。导出时会恢复完整的包内文件，导出的皮肤仍可单独导入，字体与许可不会丢失。
+
+扩展包根目录还允许携带 README.md、ASSETS.md、NOTICE（可带 .txt/.md）和 LICENSE（可带许可证名后缀及 .txt/.md），用于保留说明与许可。其他未声明素材仍会拒绝，文档不作为样式或代码执行。
 
 ### 1.1 当前限制概览
 
@@ -258,6 +264,9 @@ tokens 是初始默认值，不是只能读取的常量。可在 `@root` 状态/
 | `metadata` | 谱面信息，`#metadata-editor` |
 | `bpm` | BPM，`#bpm-editor` |
 | `trajectory` | 曲线轨迹，`#trajectory-editor` |
+| `spatial` | 空间轨迹右侧面板，`#spatial-editor`（`@spatial-panel`）；入口为 `@spatial-tool` |
+
+`@sampling-controls` 对应普通事件、噪域及空间轨迹共用的取样设置区。取样期间设置停留在右侧，不覆盖预览；空间轨迹曲线使用谱面颜色，编辑器皮肤不重映射其画布颜色。
 | `text-lines` | 文字拼合，`#text-lines-editor` |
 | `noise-fit` | 噪域图案，`#noise-fit-editor` |
 | `curve` | 曲线音符，`#curve-editor` |
@@ -266,6 +275,8 @@ tokens 是初始默认值，不是只能读取的常量。可在 `@root` 状态/
 | `noise` | 噪域列表/层，`#noise-panel` |
 | `noise-properties` | 噪域及内部事件属性，`#noise-properties` |
 | `clipboard` | 剪贴板历史 |
+
+`@sampling-controls` 对应普通事件、噪域及空间轨迹共用的取样设置区。取样期间设置停留在右侧，不覆盖预览；空间轨迹曲线使用谱面颜色，编辑器皮肤不重映射其画布颜色。
 
 常见样式入口：`.panel-title` 标题、`.field` 标签/控件行、`.hint` 提示、`.action-grid` 操作网格、`.primary` 主操作、`.wide-button` 整行按钮、`details > summary` 折叠头、`.modal-actions` 窗口底栏。例如 `[data-panel="events"] .field input` 只修改事件输入框。不要将 CSS 绑定到某一行索引或中文标签文本；可参考组件目录中的静态 id，动态字段以所属面板加控件类型作通用定制。
 
@@ -661,3 +672,7 @@ builtin 必须使用组件目录 builtinAssets 表中登记的有限名称，不
 动画曲线是编辑器内的大浮窗，直接继承当前皮肤；不创建系统子窗口。组件别名 animation-curve 指向 #animation-curve-editor，custom-easing-templates 指向 .custom-easing-group。布局保留可拖动标题栏、画布、长纵向滑条、侧栏、帮助与右下角缩放柄。帮助图示使用当前颜色令牌；无额外的模组运行环境。
 
 视频渲染：render-video 指向顶部唯一入口 #render-video（首页禁用），render-studio 指向按需创建的 #rpen-render-studio。不得在皮肤中复制渲染入口。面板继承皮肤颜色；详见 VIDEO-RENDER.zh-CN.md。
+
+整窗录制渲染使用快捷键；`@editor-recording-status` 为录制期间才创建的左下角状态／停止按钮，`@editor-render-fps` 为设置中的目标帧率。均继承普通控件外观，无须皮肤添加新入口。
+
+`@editor-render-settings` 为统一默认折叠的播放渲染设置面板，`@editor-render-auto-play` 为开始时自动播放。`@key-display` 是独立的按键显示开关；`@key-display-overlay` 为启用时才创建的右下角顶层键帽容器，pointer-events 为 none，不影响布局、焦点和鼠标操作。

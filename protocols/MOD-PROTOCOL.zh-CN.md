@@ -235,7 +235,9 @@ export function activate(api) {
 | `save()` | 调用现有主动保存流程，返回 Promise；必须 await 并处理写入或版本冲突错误，详见下文 |
 | `addAsset(path,bytes)/removeAsset(path)` | 改素材、标未保存、刷新贴图缓存 |
 
-可直接访问实际对象：`audio/audioSources/audioOnsets/audioAnalysis/playback/preview/realtimePreview/timeline/skin/images/hitSounds/editorSkins/noteSkins/noiseEditor/eventSampler/trajectoryPanel/textLinesPanel/noiseFitPanel/noiseTrackingPanel/multiEdit/batchControls/collaboration/versionControl`。它们不是只读快照或受限代理，可以包装方法、调整字段或替换底层行为；具体接口看同名源码。持久设置修改需调用相应的保存流程。`audioOnsets`管理采音算法、模型推理缓存与候选筛选，供原生界面和AI共用；调用`analyze(buffer, options, signal)`不修改谱面，模型环境需由用户配置，不能绕过其安装确认。
+可直接访问实际对象：`audio/audioSources/audioOnsets/audioAnalysis/playback/preview/realtimePreview/timeline/skin/images/hitSounds/editorSkins/noteSkins/noiseEditor/eventSampler/spatialTool/trajectoryPanel/textLinesPanel/noiseFitPanel/noiseTrackingPanel/multiEdit/batchControls/collaboration/versionControl`。它们不是只读快照或受限代理，可以包装方法、调整字段或替换底层行为；具体接口看同名源码。持久设置修改需调用相应的保存流程。`audioOnsets`管理采音算法、模型推理缓存与候选筛选，供原生界面和AI共用；调用`analyze(buffer, options, signal)`不修改谱面，模型环境需由用户配置，不能绕过其安装确认。
+
+几何投影扩展可在预览 renderer 上提供 `spatialMapping.project(point, seconds, frame, chart, tempo)` 与 `unproject(...)`。point 是完成比例适配和父线计算后的判定线世界 X/Y，输出仍为当前预览面中的同单位 X/Y；frame 包含 CSS 像素 width/height 和绘制 scale。返回 null 表示不可投影或不可反算，不能伪造零坐标。空间轨迹按各节点自身的秒数调用映射，编辑时先反算观察视图，再调用 unproject。内置摄像机已接入，停用模组时恢复原映射；纯像素 Shader 无需提供此接口。
 
 音频分析的 `audioSources.select(id或id数组)` 临时切换实际播放与默认分析音源，至少选择一项；`selectedIds` 返回勾选项，`resolveSelection()` 返回其混合。`audio.buffer` 始终保留原音乐，`audio.playbackBuffer` 是当前实际播放缓冲；两者不可混为保存或导出的素材。所有声部共用原音乐零点与谱面延迟，选择不进入谱面历史或设置，退出谱面恢复原音频。波形/频谱按各声部颜色分列显示，`audioOnsets` 默认分析当前混合。
 
@@ -340,6 +342,8 @@ API 1 的托管方法、清单和钩子是稳定契约；新增可选字段与�
 
 `Preview.drawBackground`、`Preview.drawUi` 使用同样的绘制阶段签名，分别位于背景阶段及第一层 shader 后的游戏 UI 阶段。前者支持 center 捕获窗口偏移；后者使用 frame.viewport 定义 UI 的逻辑布局范围，并依赖 frame.states。三维摄像机的“跟随谱面”选项组合这两个可恢复补丁，让背景图片和游戏 UI 参与投影，同时保留它们在 shader 与噪域前后的顺序。
 
+替换谱面内 Shader 资源字节后，可调用 `editor.shaderAssetsChanged()` 标记素材未保存、更新谱面检查与预览源码缓存，避免无关图片重载。资源字节应替换为新的 `Uint8Array`，不要原地修改旧对象；此接口只负责素材变更通知，不创建编辑事务或自动联机传输。
+
 发布前至少验证：导入后不执行、启用及再次启用、修改快捷键、文本输入不穿透、切换谱面、撤销/重做、禁用时清理、依赖/冲突和异常恢复；自定义数据还须验证保存、重开、Next 导出及兼容导出的行为。支持桌面端的模组还应验证更新后设置继承、切换谱面库、大素材保存、冲突或写入失败时保留编辑。替换素材优先提交新的字节数组；保存仍会重新校验可变数组内容，不以对象引用相同作为素材未变化的保证。高自由度来自同页执行能力，可靠性来自模组作者对状态与恢复的完整管理。
 
 编辑器更新入口位于设置的“关于”，更新包的选择、下载、校验与程序替换由宿主负责，没有新增模组安装权限。模组应将用户数据保存至既有谱面、设置或工作区接口，不要写入程序安装目录，也不要依赖安装目录保持不变；宿主重启更新沿用正常的保存、设置写入与关闭流程。
@@ -347,3 +351,5 @@ API 1 的托管方法、清单和钩子是稳定契约；新增可选字段与�
 事件可包含 customEasing，具体见 ANIMATION-CURVES-PROTOCOL.zh-CN.md 和 schemas/animation-curve-v1.schema.json。提供方应使用共用 EventTrack / event-easing 求值，不能只读取 easingType。修改标准缓动须移除 customEasing；未知字段与裁切区间应保留。模组类型声明增加 AnimationCurve / CustomEventEasing。
 
 视频渲染模块创建独立 Preview，沿用 preview:before 和 onPreview 的传入 chart/seconds，payload.purpose 为 autoplay/export；离线输出不依赖真实播放头。需要包装渲染实例的扩展可从 @rpen/ui/render-extensions.mjs 导入 registerRenderExtension(attach)，attach 返回释放函数；同时保留原编辑器实例的接入。三维摄像机已使用此机制。详见 VIDEO-RENDER.zh-CN.md。
+
+内置 `rpe-classic-layout` 与同版本 RPE Classic 编辑器皮肤配套：选择皮肤时自动装载，切换其他皮肤时卸载，自动装载不改写普通模组的持久化启用列表。手动停用及紧急禁用有效，安全模式不自动装载；手动启用会应用配套皮肤。皮肤与布局更新均随本体分发，保持导入包不能覆盖内置版本的规则。后续该皮肤的外观适配由维护方验证。实现使用现有 API 1，不增加对普通扩展的权限或接口要求。

@@ -29,6 +29,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
 });
 
 export const DEFAULT_EDITOR_PREFERENCES = Object.freeze({
+  "editorRenderFps": 60,
+  "editorRenderAutoPlay": true,
+  "keyDisplay": false,
   "overlappingLinePicker": true,
   "directPlacement": false,
   "placementOpacity": 0.5,
@@ -42,6 +45,10 @@ export const DEFAULT_EDITOR_PREFERENCES = Object.freeze({
   "pairedMovementSampling": true,
   "rpeEventDrag": false,
   "xyBinding": false,
+  "movementVector": true,
+  "eventValueScale": true,
+  "eventValueScaleSnap": true,
+  "eventValueScaleStep": 0.05,
   "scale": 600,
   "division": 4,
   "snapX": true,

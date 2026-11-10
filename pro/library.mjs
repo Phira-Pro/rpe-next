@@ -1,6 +1,6 @@
 // GPL-3.0-only. Copy-only native library actions, isolated from RPEN persistence.
-import { createChartExport, resourceReferences, assetPath } from '../src/platform/files.mjs';
-import { nativePlaybackChart } from './snapshot.mjs';
+import { resourceReferences, assetPath } from '../src/platform/files.mjs';
+import { nativePlaybackExport } from './snapshot.mjs';
 
 export async function libraryOperation(host, request, { sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), now = Date.now } = {}) {
   const { id } = await host.request('library', JSON.stringify(request));
@@ -14,14 +14,13 @@ export async function libraryOperation(host, request, { sleep = ms => new Promis
   throw Error('谱面库操作超时，请先返回 Pro 检查谱面库，再决定是否重试');
 }
 
-export function copyExport(editor) {
+export async function copyExport(editor) {
   const refs = resourceReferences(editor.chart, editor.assets, editor.chartName);
   if (!refs.song || !assetPath(editor.assets, refs.song, editor.chartName)) throw Error('存入 Pro 谱面库前，请先导入并指定谱面音乐');
   // Discard stale native metadata in the exported copy only. RPEN generates info.txt
   // from the current chart and resource bindings; the source assets remain intact.
   const assets = new Map([...editor.assets].filter(([name]) => !/^(?:info\.yml|info\.csv)$/i.test(name)));
-  const chart = nativePlaybackChart(editor.chart);
-  return createChartExport(chart, assets, editor.chartName, { format: 'pez', compatibility: 'next', includeUnusedFiles: true }).blob;
+  return (await nativePlaybackExport(editor.chart, assets, editor.chartName)).blob;
 }
 
 export function installLibrary({ editor, host, action, save, isBusy, setBusy, status, report }) {
@@ -81,7 +80,7 @@ export function installLibrary({ editor, host, action, save, isBusy, setBusy, st
     try {
       editor.pause(); editor.noiseEditor.flush(); await save();
       status.textContent = '正在创建 Pro 谱面副本';
-      const snapshot = await host.request('snapshot', copyExport(editor), 'application/zip');
+      const snapshot = await host.request('snapshot', await copyExport(editor), 'application/zip');
       const result = await libraryOperation(host, { action: 'write', snapshot: snapshot.id });
       status.textContent = `已存入 Pro 谱面库：${result.value.name}`; editor.notify('已创建新谱面，原谱面未被覆盖', 'success');
     } finally { lock(false); }

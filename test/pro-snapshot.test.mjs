@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nativePlaybackChart } from '../pro/snapshot.mjs';
+import { nativePlaybackChart, nativePlaybackExport } from '../pro/snapshot.mjs';
+import { copyExport } from '../pro/library.mjs';
+import { readZip } from '../src/platform/archive.mjs';
+import { readFile } from 'node:fs/promises';
 import { createChart, createEvent } from '../src/core/chart.mjs';
 import { withCustomEasing } from '../src/core/event-easing.mjs';
 import { chartHasAnimationCurves } from '../src/core/chart-animation-curves.mjs';
@@ -35,4 +38,32 @@ test('video download uses the Pro host instead of a blob link', () => {
     assert.deepEqual(received,{blob,name:'render.webm'});
     assert.equal(result.bytes,blob.size);
   } finally {delete globalThis.phiraEditor;}
+});
+
+test('native exports carry 0.14 builtin and custom shader sources without editing the project', async t => {
+  t.mock.method(globalThis, 'fetch', async url => new Response(await readFile(new URL(url))));
+  const chart = createChart(); chart.META.song = 'music.wav';
+  chart.shaderEvents = [
+    { startTime: [0,0,1], endTime: [4,0,1], shader: 'wave_pr.glsl' },
+    { startTime: [0,0,1], endTime: [4,0,1], shader: '/shaders/custom.glsl' },
+  ];
+  const custom = new TextEncoder().encode('void main() { gl_FragColor = vec4(1.0); }');
+  const assets = new Map([['music.wav', new Uint8Array([1,2,3])], ['shaders/custom.glsl', custom]]);
+  const before = JSON.stringify(chart), names = [...assets.keys()];
+  for (const blob of [(await nativePlaybackExport(chart, assets, 'chart.json')).blob,
+    await copyExport({chart, assets, chartName:'chart.json'})]) {
+    const files = await readZip(await blob.arrayBuffer());
+    assert.ok(files.get('shaders/builtin/wave.glsl')?.byteLength);
+    assert.deepEqual(files.get('shaders/custom.glsl'), custom);
+    const saved = JSON.parse(new TextDecoder().decode(files.get('chart.json')));
+    assert.equal(saved.shaderEvents[0].shader, '/shaders/builtin/wave.glsl');
+    assert.equal(saved.shaderEvents[1].shader, '/shaders/custom.glsl');
+  }
+  assert.equal(JSON.stringify(chart), before); assert.deepEqual([...assets.keys()], names);
+});
+
+test('native exports reject missing custom shaders before producing a package', async () => {
+  const chart = createChart();
+  chart.shaderEvents = [{startTime:[0,0,1],endTime:[4,0,1],shader:'/shaders/missing.glsl'}];
+  await assert.rejects(nativePlaybackExport(chart, new Map(), 'chart.json'), /missing.glsl/);
 });

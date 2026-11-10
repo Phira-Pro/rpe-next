@@ -1,7 +1,7 @@
 // GPL-3.0-only. Integration uses RPEN's public editor interface.
 import './recovery.mjs';
 import '../src/ui/app.mjs';
-import { createChartExport, assetPath } from '../src/platform/files.mjs';
+import { assetPath } from '../src/platform/files.mjs';
 import { resourceReferences } from '../src/platform/files.mjs';
 import { flushLocalPreferences } from '../src/platform/local-preferences.mjs';
 import { TouchController } from './touch.mjs';
@@ -9,7 +9,7 @@ import { installPanels } from './panels.mjs';
 import { installLibrary } from './library.mjs';
 import { installFolders } from './folders.mjs';
 import { installLinkedMigration } from './linked.mjs';
-import { nativePlaybackChart } from './snapshot.mjs';
+import { nativePlaybackExport } from './snapshot.mjs';
 
 const host=globalThis.phiraEditor;
 let hostPoll;
@@ -79,8 +79,7 @@ play.querySelector('[data-start]').onclick=async()=>{
     const start=mode==='all'?0:mode==='current'?Math.max(0,editor.chartSeconds()):Number(play.querySelector('[name=start]').value);
     const end=mode==='range'?Number(play.querySelector('[name=end]').value):null;
     if(!Number.isFinite(start)||start<0||(end!==null&&(!Number.isFinite(end)||end<=start)))throw Error('请填写有效的试玩时间区间');
-    const chart=nativePlaybackChart(editor.chart);
-    const {blob}=createChartExport(chart,editor.assets,editor.chartName,{format:'pez',compatibility:'next',includeUnusedFiles:true});
+    const {blob}=await nativePlaybackExport(editor.chart,editor.assets,editor.chartName);
     status.textContent='正在准备试玩快照';
     const snapshot=await host.request('snapshot',blob,'application/zip');
     await host.request('play',JSON.stringify({snapshot:snapshot.id,start,end}));
