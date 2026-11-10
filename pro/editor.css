@@ -48,6 +48,7 @@
 .pro-library-chart span { opacity:.8;font-size:.9em; }
 .pro-library > :not(.pro-library-list) { flex-shrink:0; }
 .pro-command-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0; }
+.phira-editor .pro-command-grid > button { min-width:0!important;max-width:100%;height:auto!important;min-height:32px!important;white-space:normal!important;overflow-wrap:anywhere;line-height:1.4!important;padding:5px 8px!important; }
 .phira-editor dialog { max-width:calc(100vw - 24px);max-height:calc(var(--pro-height,100dvh) - 24px);box-sizing:border-box; }
 @media (pointer:coarse), (max-width:960px) {
   .phira-editor .pro-panel-dock { display:flex;align-items:center;gap:5px;flex:none;height:26px;padding:0 6px;background:var(--rpen-surface,#303030); }
