@@ -4,20 +4,21 @@ import { evaluateNumericExpression } from '@rpen/core/numeric-expression.mjs';
 import { NodeOwnership, positioned, controlSlot } from './ownership.mjs';
 import { installFooterInfo } from './footer-info.mjs';
 import { interfaceAsset } from './interface-assets.mjs';
+import { classicText } from './messages.mjs';
 
 const find = selector => document.querySelector(selector);
 const text = (tag, content, className = '') => {
   const node = document.createElement(tag); node.className = className; node.textContent = content; return node;
 };
 const english = () => !currentLocale().locale.startsWith('zh');
-const tr = (zh, en) => english() ? en : zh;
+const tr = classicText;
 
 export class ClassicInterface {
   constructor(api, state, requestSync) {
     this.api = api; this.editor = api.editor; this.state = state; this.requestSync = requestSync;
     this.owner = new NodeOwnership(); this.settingsOwner = new NodeOwnership(); this.modeOwner = new NodeOwnership(); this.controller = new AbortController(); this.nodes = []; this.popovers = [];
     this.realtimeAlpha=find('#realtime-alpha');this.inspector=find('.inspector');
-    this.page = state.toolbarPage ?? 0; this.homePage = state.homePage ?? 0; this.urls = state.urls ??= new Map(); this.proxyButtons = [];
+    this.page = globalThis.phiraEditor ? 0 : state.toolbarPage ?? 0; this.homePage = state.homePage ?? 0; this.urls = state.urls ??= new Map(); this.proxyButtons = [];
     try {
     this.toolbar = this.mount(document.createElement('div'), find('.transport')); this.toolbar.id = 'rpe-classic-toolbar';
     this.toolbar.style.setProperty('--rc-slider-track', this.image('sliderbar'));
@@ -177,7 +178,10 @@ export class ClassicInterface {
     this.native(a, '#game-ui', [1138.56,97.2,40,40], {icon:'layout'});
     this.native(a, '#mute-current-line', [1305.6,37.8,40,40], {icon:'mute'});
     this.checkbox(a, '#direct-placement-enabled', tr('启用直接放置，然后在播放预览中选择判定线','Enable direct placement, then select a line in playback preview'), 'direct-placement.svg', [1308.48,97.2,40,40]);
-    this.icon(c, tr('切换工具栏','Switch toolbar page'), 'more', [1215.36,97.2,40,40], () => this.setPage(1-this.page), 'rpe-classic-more');
+    if (globalThis.phiraEditor) {
+      this.touchSlot = controlSlot(c, null, [1190,97.2,110,40]);
+      this.touchSlot.id = 'rpe-classic-pro-touch';
+    } else this.icon(c, tr('切换工具栏','Switch toolbar page'), 'more', [1215.36,97.2,40,40], () => this.setPage(1-this.page), 'rpe-classic-more');
     this.native(c, '.scrubber-wrap', [1622.4,27,550,42], {className:'rc-time-progress'});
     this.native(c, '.time-readouts', [1622.4,62.1,550,32], {className:'rc-times'});
     this.native(c, '#bpm-display', [1622.4,62.1,150,32], {className:'rc-bpm'});
@@ -342,6 +346,7 @@ export class ClassicInterface {
   }
   buildSettingsMenu() {
     this.settingsDialog = find('#settings-modal'); this.headerNav = find('header nav');
+    if (globalThis.phiraEditor) return;
     this.settingsMenu = this.mount(document.createElement('div'), this.settingsDialog);
     this.settingsMenu.id = 'rpe-classic-settings-menu'; this.settingsMenu.hidden = true;
     this.settingsObserver = new MutationObserver(() => this.syncSettingsMenu());
@@ -387,6 +392,11 @@ export class ClassicInterface {
   }
   ready(){return this.realtimeAlpha?.isConnected&&this.inspector?.isConnected&&this.toolbar?.isConnected;}
   destroy() {
+    if (this.touchSlot) {
+      const gameUi = find('#game-ui');
+      const commands = find('#pro-touch-commands'), scroll = find('#pro-touch-scroll');
+      if (gameUi && commands && scroll) gameUi.before(commands, scroll);
+    }
     this.footerInfo?.();
     delete document.documentElement.dataset.rpeClassicMode;
     this.modeOwner.restore();

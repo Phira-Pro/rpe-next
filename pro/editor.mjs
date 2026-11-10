@@ -10,6 +10,8 @@ import { installLibrary } from './library.mjs';
 import { installFolders } from './folders.mjs';
 import { installLinkedMigration } from './linked.mjs';
 import { nativePlaybackExport } from './snapshot.mjs';
+import { installNativePreview } from './preview.mjs';
+import { pt, translateProUi } from './locale.mjs';
 
 const host=globalThis.phiraEditor;
 let hostPoll;
@@ -24,7 +26,7 @@ document.body.classList.add('phira-editor');
 if(matchMedia('(pointer:coarse)').matches){const title=document.querySelector('#settings-title');title.tabIndex=-1;title.autofocus=true;}
 const status=document.querySelector('#status');
 const buttons=[];
-const action=(label,fn,options={})=>{const button=document.createElement('button');button.type='button';button.textContent=label;button.title=options.title??label;button.onclick=async()=>{try{await fn();}catch(error){report(error);}};buttons.push(button);return button;};
+const action=(label,fn,options={})=>{const button=document.createElement('button');button.type='button';button.textContent=pt(label);button.title=pt(options.title??label);button.onclick=async()=>{try{await fn();}catch(error){report(error);}};buttons.push(button);return button;};
 const report=error=>{status.textContent=error.message;editor.notify(error.message,'error');};
 installFolders(report);
 await installLinkedMigration(host);
@@ -46,7 +48,7 @@ scrollButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 
 const refreshModes=()=>{scrollButton.setAttribute('aria-pressed',String(touch.mode==='pan'));document.querySelectorAll('[data-input-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.inputMode===touch.mode)));};
 touch=new TouchController(editor,refreshModes);refreshModes();
 const commands=document.createElement('dialog');commands.className='pro-dialog';commands.dataset.modInteractive='true';
-const commandTitle=document.createElement('h2');commandTitle.textContent='触控操作';commands.append(commandTitle);
+const commandTitle=document.createElement('h2');commandTitle.textContent=pt('触控操作');commands.append(commandTitle);
 const modes=document.createElement('div');modes.className='pro-command-grid';
 for(const [mode,label] of [['edit','编辑'],['box','框选'],['multi','多选']]){const button=action(label,()=>{touch.setMode(mode);commands.close();});button.dataset.inputMode=mode;modes.append(button);}commands.append(modes);
 const grid=document.createElement('div');grid.className='pro-command-grid';
@@ -55,13 +57,18 @@ for(const [name,label] of [['AddTap','放置音符或取点'],['AddEvent','放�
 commands.append(grid,action('关闭',()=>commands.close()));document.body.append(commands);
 const commandButton=action('触控操作',()=>{refreshModes();commands.showModal();});commandButton.id='pro-touch-commands';
 // Skin organization may move game-ui. Follow that button without moving it.
-const placeTouchControls=()=>{const gameUi=document.querySelector('#game-ui');if(scrollButton.nextElementSibling!==gameUi||commandButton.nextElementSibling!==scrollButton)gameUi.before(commandButton,scrollButton);};
-new MutationObserver(placeTouchControls).observe(document.querySelector('.workspace'),{childList:true,subtree:true});placeTouchControls();
+const placeTouchControls=()=>{
+  const slot=document.querySelector('#rpe-classic-pro-touch');
+  if(slot){if(scrollButton.parentElement!==slot||scrollButton.nextElementSibling!==commandButton)slot.append(scrollButton,commandButton);return;}
+  const gameUi=document.querySelector('#game-ui');if(scrollButton.nextElementSibling!==gameUi||commandButton.nextElementSibling!==scrollButton)gameUi.before(commandButton,scrollButton);
+};
+new MutationObserver(placeTouchControls).observe(document.body,{childList:true,subtree:true});placeTouchControls();
 installPanels(editor);
+installNativePreview({editor,host});
 
 const play=document.createElement('dialog');play.className='pro-dialog';play.dataset.modInteractive='true';
 play.innerHTML='<form method="dialog"><h2>在 Pro 中试玩</h2><p>使用当前工程的独立快照。试玩不记录正常成绩。</p><label>开始位置 <select name="mode"><option value="current">当前播放头</option><option value="all">从头开始</option><option value="range">指定时间区间</option></select></label><div class="pro-range"><label>开始秒数 <input name="start" type="number" min="0" step="0.01"></label><label>结束秒数 <input name="end" type="number" min="0" step="0.01"></label></div><p class="pro-warning" role="status"></p><div class="pro-actions"><button value="cancel">取消</button><button type="button" class="primary" data-start>开始试玩</button></div></form>';
-document.body.append(play);
+translateProUi(play);document.body.append(play);
 const playMode=play.querySelector('[name=mode]');
 const syncPlayRange=()=>{play.querySelector('.pro-range').hidden=playMode.value!=='range';};
 playMode.addEventListener('change',syncPlayRange);syncPlayRange();

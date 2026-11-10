@@ -1,6 +1,11 @@
 /* GPL-3.0-only. Preserve RPEN layout and skin organization; fold panels in place. */
 .phira-editor { height:var(--pro-height,100dvh);padding:0;box-sizing:border-box; }
 #pro-loading { display:none; }
+.pro-native-preview { position:absolute;pointer-events:none;z-index:0;background:#111;object-fit:contain; }
+.pro-native-active > :is(.preview-shader-layer,.preview-overlay-layer,.preview-overflow-layer) { visibility:hidden!important; }
+.pro-native-preview[hidden],.pro-native-preview-message[hidden] { display:none!important; }
+.pro-native-source { visibility:hidden!important; }
+.pro-native-preview-message { position:absolute;pointer-events:none;display:flex;align-items:center;justify-content:center;z-index:2;padding:12px;box-sizing:border-box;text-align:center;background:#151515dd;color:#fff;overflow-wrap:anywhere;font:13px/1.5 system-ui; }
 .pro-booting body > :not(#pro-loading) { visibility:hidden!important;opacity:0!important;pointer-events:none!important; }
 .pro-booting #pro-loading { position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#171d26;color:#edf3fa;font:14px system-ui,sans-serif; }
 #pro-loading strong { font-size:30px;letter-spacing:3px; }
@@ -101,3 +106,23 @@
 @media (prefers-reduced-motion:reduce) {
   .pro-closing body { transition:none; }
 }
+/* Classic owns its geometry. Compact folding rules must not reshape its slots. */
+:root[data-rpe-classic-active] .phira-editor > header { display:flex!important;position:fixed!important;inset:0 0 auto!important;height:36px!important;min-height:36px!important;max-height:36px!important;padding:2px 8px!important;gap:6px!important;flex-wrap:nowrap!important;z-index:30;background:#303030;box-sizing:border-box; }
+:root[data-rpe-classic-active] .phira-editor > header > :not(.pro-panel-toggle) { display:revert!important; }
+:root[data-rpe-classic-active] .phira-editor > header nav { display:flex!important;min-width:0;margin-left:auto;overflow-x:auto;flex-wrap:nowrap; }
+:root[data-rpe-classic-active] .phira-editor > header .brand { display:flex!important;flex:none;font-size:14px!important; }
+:root[data-rpe-classic-active] .phira-editor > header .brand img { width:20px!important;height:20px!important; }
+:root[data-rpe-classic-active] .phira-editor > header #document-name { font-size:12px!important;min-width:40px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+:root[data-rpe-classic-active] .phira-editor > header nav button { height:28px!important;min-height:28px!important;padding:2px 7px!important;font-size:12px!important; }
+:root[data-rpe-classic-active] .phira-editor :is(.pro-panel-dock,.pro-panel-toggle) { display:none!important; }
+:root[data-rpe-classic-active] .phira-editor .transport { display:block!important;height:calc(144px * var(--rc-s))!important;max-height:none!important;padding:0!important;overflow:visible!important; }
+:root[data-rpe-classic-active] .phira-editor .transport > #rpe-classic-toolbar { display:block!important; }
+:root[data-rpe-classic-active] .phira-editor .workspace { grid-template-columns:calc(1350px * var(--rc-s)) calc(570px * var(--rc-s))!important;grid-template-rows:minmax(0,1fr)!important; }
+:root[data-rpe-classic-active] .phira-editor .inspector { display:block!important;height:100%!important;max-height:none!important;padding-top:0!important; }
+:root[data-rpe-classic-active] .phira-editor .inspector > :not(.pro-panel-toggle):not([hidden]) { display:revert!important; }
+:root[data-rpe-classic-active] .phira-editor :is(.editor-toolbar,.editor-footer) { display:none!important; }
+:root[data-rpe-classic-active] .phira-editor #rpe-classic-toolbar :is(input,select) { min-width:0!important; }
+:root[data-rpe-classic-active] #rpe-classic-pro-touch { display:flex;align-items:center;gap:calc(6px * var(--rc-s)); }
+:root[data-rpe-classic-active] .phira-editor #rpe-classic-pro-touch #pro-touch-scroll { border:0!important;background:transparent!important;box-shadow:none!important;width:calc(30px * var(--rc-s))!important;min-width:0!important;height:calc(40px * var(--rc-s))!important;padding:0!important;color:#fff!important; }
+:root[data-rpe-classic-active] #rpe-classic-pro-touch #pro-touch-scroll svg { width:calc(24px * var(--rc-s));height:calc(24px * var(--rc-s)); }
+:root[data-rpe-classic-active] .phira-editor #rpe-classic-pro-touch #pro-touch-commands { flex:1;min-width:0!important;width:0!important;height:calc(36px * var(--rc-s))!important;min-height:0!important;padding:0 calc(3px * var(--rc-s))!important;font:calc(17px * var(--rc-s))/1.1 sans-serif!important;border:0!important;border-radius:0!important;background:#fff!important;color:#111!important;overflow:hidden;text-overflow:ellipsis; }

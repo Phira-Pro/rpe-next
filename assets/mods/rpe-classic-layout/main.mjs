@@ -42,12 +42,14 @@ export async function activate(api) {
   }
   function resize() {
     if (!state.active) return;
-    const size = `${innerWidth},${innerHeight},${editor.timeline.notesOnly}`; if (size === lastSize) return;
+    const headerHeight = globalThis.phiraEditor ? document.querySelector('body > header').getBoundingClientRect().height : 0;
+    const availableHeight = Math.max(1, innerHeight - headerHeight);
+    const size = `${innerWidth},${innerHeight},${headerHeight},${editor.timeline.notesOnly}`; if (size === lastSize) return;
     const initial=!lastSize,viewChanged=state.notesOnly!==editor.timeline.notesOnly;lastSize = size;state.notesOnly=editor.timeline.notesOnly;
-    const scale = layoutScale(innerWidth, innerHeight);if(state.nativeNoteWidth)state.nativeNoteWidth*=scale/state.scale;state.scale = scale;
+    const scale = layoutScale(innerWidth, availableHeight);if(state.nativeNoteWidth)state.nativeNoteWidth*=scale/state.scale;state.scale = scale;
     root.style.setProperty('--rc-s', String(scale));
     root.style.setProperty('--rc-left', Math.max(0,(innerWidth-1920*scale)/2)+'px');
-    root.style.setProperty('--rc-top', Math.max(0,(innerHeight-1080*scale)/2)+'px');
+    root.style.setProperty('--rc-top', (headerHeight + Math.max(0,(availableHeight-1080*scale)/2))+'px');
     clearTimeout(measureTimer);if(initial||viewChanged)measureNativeWidth();else measureTimer=setTimeout(measureNativeWidth,120);
     editor.invalidate();
   }

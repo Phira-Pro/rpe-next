@@ -1,5 +1,6 @@
 // GPL-3.0-only. Fold existing panels in place; never recreate or reorder their controls.
 import { localPreferences } from '../src/platform/local-preferences.mjs';
+import { pt } from './locale.mjs';
 
 const KEY = 'rpe-next-pro-panel-folds-v2';
 const topPanels = ['transport', 'tools', 'tracks'];
@@ -9,13 +10,13 @@ export function toggleTopPanel(open, id) {
   return [...next];
 }
 const definitions = [
-  ['files', 'body > header', '文件', false],
-  ['transport', '.transport', '播放', true],
-  ['tools', '.editor-toolbar', '工具', true],
-  ['tracks', '.timeline-head', '轨道', true],
-  ['properties', '.inspector', '属性', true],
-  ['actions', '.editor-footer', '底栏', false],
-  ['status', 'body > footer', '状态', true],
+  ['files', 'body > header', pt('文件'), false],
+  ['transport', '.transport', pt('播放'), true],
+  ['tools', '.editor-toolbar', pt('工具'), true],
+  ['tracks', '.timeline-head', pt('轨道'), true],
+  ['properties', '.inspector', pt('属性'), true],
+  ['actions', '.editor-footer', pt('底栏'), false],
+  ['status', 'body > footer', pt('状态'), true],
 ];
 
 export function installPanels(editor) {

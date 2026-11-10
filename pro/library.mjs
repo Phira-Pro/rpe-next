@@ -1,6 +1,7 @@
 // GPL-3.0-only. Copy-only native library actions, isolated from RPEN persistence.
 import { resourceReferences, assetPath } from '../src/platform/files.mjs';
 import { nativePlaybackExport } from './snapshot.mjs';
+import { pt, translateProUi } from './locale.mjs';
 
 export async function libraryOperation(host, request, { sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), now = Date.now } = {}) {
   const { id } = await host.request('library', JSON.stringify(request));
@@ -27,7 +28,7 @@ export function installLibrary({ editor, host, action, save, isBusy, setBusy, st
   const dialog = document.createElement('dialog');
   dialog.id = 'pro-library'; dialog.className = 'pro-dialog pro-library'; dialog.dataset.modInteractive = 'true';
   dialog.innerHTML = '<h2>从 Pro 谱面库导入</h2><p class="pro-warning">导入独立编辑副本，原谱面和成绩保持不变。</p><input class="pro-library-search" type="search" placeholder="搜索曲名、难度或作者" aria-label="搜索 Pro 谱面库"><p class="pro-library-message" role="status"></p><div class="pro-library-list"></div><div class="pro-actions"><button type="button" data-cancel>取消</button></div>';
-  document.body.append(dialog);
+  translateProUi(dialog);document.body.append(dialog);
   const list = dialog.querySelector('.pro-library-list'), search = dialog.querySelector('input'), message = dialog.querySelector('[role=status]'), cancel = dialog.querySelector('[data-cancel]');
   let rows = [], working = false, choose;
   const lock = value => { working = value; setBusy(value); search.disabled = value; cancel.disabled = value; list.querySelectorAll('button').forEach(button => { button.disabled = value; }); };

@@ -7,9 +7,10 @@
 // Node tests. `settingsLanguage` is the packaged name used on disk.
 import zhCN from '../locales/zh-CN.mjs';
 import enUS from '../locales/en-US.mjs';
+import jaJP from '../locales/ja-JP.mjs';
 import { registerCatalog } from './i18n-core.mjs';
 
-export const BUILTIN_LOCALES = [zhCN, enUS];
+export const BUILTIN_LOCALES = [zhCN, enUS, jaJP];
 for (const catalog of BUILTIN_LOCALES) registerCatalog(catalog);
 
 // Legacy RPE stores its own interface language; it maps onto the locale tag
@@ -18,6 +19,7 @@ for (const catalog of BUILTIN_LOCALES) registerCatalog(catalog);
 export const RPE_LANGUAGE_TAGS = {
   Chinese: 'zh-CN',
   English: 'en-US',
+  Japanese: 'ja-JP',
 };
 
 export const DEFAULT_LANGUAGE = 'zh-CN';
