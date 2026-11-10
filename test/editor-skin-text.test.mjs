@@ -51,16 +51,16 @@ test('父容器文字覆盖不会修改内部按钮或表单控件的标签', co
   const { runtime, text } = fixture(context, { nestedControl: true }); runtime.sync(); assert.equal(text.textContent, '原始名称');
 });
 
-test('墨线保持已有中文用词，各英文标签对应皮肤中的称呼', async () => {
+test('墨线保持已有中文用词，并提供对应的英文与日语标签', async () => {
   const skin = JSON.parse(await readFile(new URL('../assets/editor-skins/inkline/skin.json', import.meta.url), 'utf8'));
   const terms = [
-    ['@open', '打开', 'Open'], ['@save', '保存', 'Save'], ['@library', '谱面库', 'Chart library'], ['@migrate', '迁移', 'Migrate'],
-    ['@toolbar > label:has(#snap-x)', '吸附', 'Snap'], ['@toolbar label.y-scale-control', 'Y 缩放', 'Y scale'],
-    ['@curve-notes', '曲线音符', 'Curve notes'], ['@curve-trajectory', '曲线轨迹', 'Curve trajectory'], ['#clipboard-history', '剪贴板', 'Clipboard'],
-    ['[data-panel] > [data-return-chart],#diagnose-close,#history-close', '谱面工具', 'Chart tools'], ['#home-open', '打开谱面', 'Open chart'], ['#resume-editor', '继续编辑', 'Keep editing'],
-    ['#modal:has(#modal-apply[hidden]) .modal-actions button[value=cancel]', '关闭', 'Close'], ['#modal:has(#modal-apply:not([hidden])) .modal-actions button[value=cancel]', '取消', 'Cancel']
+    ['@open', '打开', 'Open', '開く'], ['@save', '保存', 'Save', '保存'], ['@library', '谱面库', 'Chart library', '譜面ライブラリ'], ['@migrate', '迁移', 'Migrate', '移行'],
+    ['@toolbar > label:has(#snap-x)', '吸附', 'Snap', 'スナップ'], ['@toolbar label.y-scale-control', 'Y 缩放', 'Y scale', '縦スケール'],
+    ['@curve-notes', '曲线音符', 'Curve notes', '曲線ノーツ'], ['@curve-trajectory', '曲线轨迹', 'Curve trajectory', '曲線軌跡'], ['#clipboard-history', '剪贴板', 'Clipboard', 'クリップボード'],
+    ['[data-panel] > [data-return-chart],#diagnose-close,#history-close', '谱面工具', 'Chart tools', '譜面ツール'], ['#home-open', '打开谱面', 'Open chart', '譜面を開く'], ['#resume-editor', '继续编辑', 'Keep editing', '編集を続ける'],
+    ['#modal:has(#modal-apply[hidden]) .modal-actions button[value=cancel]', '关闭', 'Close', '閉じる'], ['#modal:has(#modal-apply:not([hidden])) .modal-actions button[value=cancel]', '取消', 'Cancel', 'キャンセル']
   ];
-  for (const [selector, chinese, english] of terms) assert.deepEqual(skin.texts.find(entry => entry.selector === selector)?.text, { 'zh-CN': chinese, 'en-US': english }, selector);
-  const groups = [['chart', '谱面', 'Chart'], ['generate', '生成', 'Generate'], ['modes', '编辑模式', 'Edit modes'], ['assist', '检查与协作', 'Checks and collaboration']];
-  for (const [id, chinese, english] of groups) assert.deepEqual(skin.organize.find(group => group.id === id)?.label, { 'zh-CN': chinese, 'en-US': english }, id);
+  for (const [selector, chinese, english, japanese] of terms) assert.deepEqual(skin.texts.find(entry => entry.selector === selector)?.text, { 'zh-CN': chinese, 'en-US': english, 'ja-JP': japanese }, selector);
+  const groups = [['chart', '谱面', 'Chart', '譜面'], ['generate', '生成', 'Generate', '生成'], ['modes', '编辑模式', 'Edit modes', '編集モード'], ['assist', '检查与协作', 'Checks and collaboration', '検査と共同作業']];
+  for (const [id, chinese, english, japanese] of groups) assert.deepEqual(skin.organize.find(group => group.id === id)?.label, { 'zh-CN': chinese, 'en-US': english, 'ja-JP': japanese }, id);
 });
