@@ -179,7 +179,7 @@ export class ClassicInterface {
     this.native(a, '#mute-current-line', [1305.6,37.8,40,40], {icon:'mute'});
     this.checkbox(a, '#direct-placement-enabled', tr('启用直接放置，然后在播放预览中选择判定线','Enable direct placement, then select a line in playback preview'), 'direct-placement.svg', [1308.48,97.2,40,40]);
     if (globalThis.phiraEditor) {
-      this.touchSlot = controlSlot(c, null, [1190,97.2,110,40]);
+      this.touchSlot = controlSlot(c, null, [1220,97.2,110,40]);
       this.touchSlot.id = 'rpe-classic-pro-touch';
     } else this.icon(c, tr('切换工具栏','Switch toolbar page'), 'more', [1215.36,97.2,40,40], () => this.setPage(1-this.page), 'rpe-classic-more');
     this.native(c, '.scrubber-wrap', [1622.4,27,550,42], {className:'rc-time-progress'});

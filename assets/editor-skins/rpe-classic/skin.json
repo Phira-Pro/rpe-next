@@ -4,12 +4,14 @@
   "id": "rpe-classic",
   "name": {
     "zh-CN": "RPE Classic · 经典编辑器",
-    "en-US": "RPE Classic · Editor"
+    "en-US": "RPE Classic · Editor",
+    "ja-JP": "RPE Classic / Editor"
   },
   "author": "cmdysj",
   "description": {
     "zh-CN": "经典 RPE 风格的编辑器界面。内置版选择后自动启用配套经典编辑布局，停用时以墨线为回退外观，不改变音符皮肤。独立导出版需要同时应用皮肤并启用同版本配套模组。",
-    "en-US": "A classic RPE editor interface. The bundled version loads its matching layout automatically when selected, with an Inkline fallback when disabled. Portable exports require the matching skin and layout mod together. Does not change note skins."
+    "en-US": "A classic RPE editor interface. The bundled version loads its matching layout automatically when selected, with an Inkline fallback when disabled. Portable exports require the matching skin and layout mod together. Does not change note skins.",
+    "ja-JP": "A classic RPE editor interface. The bundled version loads its matching layout automatically when selected, with an Inkline fallback when disabled. Portable exports require the matching skin and layout mod together. Does not change note skins."
   },
   "colorScheme": "dark",
   "skinVersion": "0.2.5",
@@ -19,7 +21,8 @@
   },
   "license": {
     "zh-CN": "代码与原创图形使用PolyForm Noncommercial 1.0.0；旧RPE界面图片保留其原有权利，经典字体读取宿主资源。素材来源见NOTICE、ASSETS.md，墨线字体按OFL 1.1。 墨线字体、图标与样式沿用内置 Inkline。界面字体为 Noto Sans SC 子集（© 2014-2021 Adobe，SIL Open Font License 1.1，完整许可见字体内嵌元数据）；图标与样式为本皮肤原创。",
-    "en-US": "Code and original graphics: PolyForm Noncommercial 1.0.0. Original RPE UI images retain their existing rights; see NOTICE and ASSETS.md. The classic font is supplied by the host. Inkline font, icons and styles are reused from the built-in skin. The interface font is a Noto Sans SC subset (© 2014-2021 Adobe, SIL Open Font License 1.1; the full license is embedded in the font metadata); icons and styles are original to this skin."
+    "en-US": "Code and original graphics: PolyForm Noncommercial 1.0.0. Original RPE UI images retain their existing rights; see NOTICE and ASSETS.md. The classic font is supplied by the host. Inkline font, icons and styles are reused from the built-in skin. The interface font is a Noto Sans SC subset (© 2014-2021 Adobe, SIL Open Font License 1.1; the full license is embedded in the font metadata); icons and styles are original to this skin.",
+    "ja-JP": "Code and original graphics: PolyForm Noncommercial 1.0.0. Original RPE UI images retain their existing rights; see NOTICE and ASSETS.md. The classic font is supplied by the host. Inkline font, icons and styles are reused from the built-in skin. The interface font is a Noto Sans SC subset (© 2014-2021 Adobe, SIL Open Font License 1.1; the full license is embedded in the font metadata); icons and styles are original to this skin."
   },
   "assets": {
     "play": {
@@ -266,507 +269,588 @@
       "selector": "@root:where(:not([data-rpe-classic-active])) @new",
       "title": {
         "zh-CN": "新建谱面",
-        "en-US": "New chart"
+        "en-US": "New chart",
+        "ja-JP": "新しい譜面"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @open",
       "text": {
         "zh-CN": "打开",
-        "en-US": "Open"
+        "en-US": "Open",
+        "ja-JP": "開く"
       },
       "title": {
         "zh-CN": "打开 JSON / PEZ 谱面，也可载入音乐或图片",
-        "en-US": "Open a JSON / PEZ chart, or load music and images"
+        "en-US": "Open a JSON / PEZ chart, or load music and images",
+        "ja-JP": "JSON / PEZ 譜面、音楽、画像を読み込む"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @save",
       "text": {
         "zh-CN": "保存",
-        "en-US": "Save"
+        "en-US": "Save",
+        "ja-JP": "保存"
       },
       "title": {
         "zh-CN": "保存到谱面库（Ctrl+S）",
-        "en-US": "Save to the chart library (Ctrl+S)"
+        "en-US": "Save to the chart library (Ctrl+S)",
+        "ja-JP": "譜面ライブラリに保存（Ctrl+S）"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @export",
       "title": {
         "zh-CN": "导出 PEZ / JSON",
-        "en-US": "Export PEZ / JSON"
+        "en-US": "Export PEZ / JSON",
+        "ja-JP": "PEZ / JSON をエクスポート"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @library",
       "text": {
         "zh-CN": "谱面库",
-        "en-US": "Chart library"
+        "en-US": "Chart library",
+        "ja-JP": "譜面ライブラリ"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @migrate",
       "text": {
         "zh-CN": "迁移",
-        "en-US": "Migrate"
+        "en-US": "Migrate",
+        "ja-JP": "移行"
       },
       "title": {
         "zh-CN": "迁移旧 RPE 项目",
-        "en-US": "Migrate old RPE projects"
+        "en-US": "Migrate old RPE projects",
+        "ja-JP": "旧 RPE プロジェクトを移行"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @recover",
       "title": {
         "zh-CN": "从自动备份恢复",
-        "en-US": "Restore from automatic backups"
+        "en-US": "Restore from automatic backups",
+        "ja-JP": "自動バックアップから復元"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @preferences",
       "title": {
         "zh-CN": "设置与热键",
-        "en-US": "Settings and hotkeys"
+        "en-US": "Settings and hotkeys",
+        "ja-JP": "設定とショートカット"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @undo",
       "title": {
         "zh-CN": "撤销（Ctrl+Z）",
-        "en-US": "Undo (Ctrl+Z)"
+        "en-US": "Undo (Ctrl+Z)",
+        "ja-JP": "元に戻す（Ctrl+Z）"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @redo",
       "title": {
         "zh-CN": "重做（Ctrl+Y）",
-        "en-US": "Redo (Ctrl+Y)"
+        "en-US": "Redo (Ctrl+Y)",
+        "ja-JP": "やり直す（Ctrl+Y）"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @copy",
       "title": {
         "zh-CN": "复制",
-        "en-US": "Copy"
+        "en-US": "Copy",
+        "ja-JP": "コピー"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @cut",
       "title": {
         "zh-CN": "剪切",
-        "en-US": "Cut"
+        "en-US": "Cut",
+        "ja-JP": "切り取り"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @paste",
       "title": {
         "zh-CN": "粘贴",
-        "en-US": "Paste"
+        "en-US": "Paste",
+        "ja-JP": "貼り付け"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @mirror",
       "title": {
         "zh-CN": "镜像：翻转选中音符，或 X / 旋转事件",
-        "en-US": "Mirror: flip selected notes, or X / rotation events"
+        "en-US": "Mirror: flip selected notes, or X / rotation events",
+        "ja-JP": "選択ノーツ、X 移動・回転イベントを反転"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @delete",
       "title": {
         "zh-CN": "删除",
-        "en-US": "Delete"
+        "en-US": "Delete",
+        "ja-JP": "削除"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) .batch-execute",
       "title": {
         "zh-CN": "批量修改选中音符",
-        "en-US": "Batch edit selected notes"
+        "en-US": "Batch edit selected notes",
+        "ja-JP": "選択ノーツを一括編集"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @toolbar > label:has(#snap-x)",
       "text": {
         "zh-CN": "吸附",
-        "en-US": "Snap"
+        "en-US": "Snap",
+        "ja-JP": "スナップ"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @toolbar label.y-scale-control",
       "text": {
         "zh-CN": "Y 缩放",
-        "en-US": "Y scale"
+        "en-US": "Y scale",
+        "ja-JP": "縦スケール"
       },
       "title": {
         "zh-CN": "Y 轴缩放（像素 / 秒）",
-        "en-US": "Y axis scale (pixels per second)"
+        "en-US": "Y axis scale (pixels per second)",
+        "ja-JP": "縦軸スケール（ピクセル / 秒）"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @curve-notes",
       "text": {
         "zh-CN": "曲线音符",
-        "en-US": "Curve notes"
+        "en-US": "Curve notes",
+        "ja-JP": "曲線ノーツ"
       },
       "title": {
         "zh-CN": "填充曲线音符",
-        "en-US": "Fill curve notes"
+        "en-US": "Fill curve notes",
+        "ja-JP": "曲線ノーツを生成"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) @curve-trajectory",
       "text": {
         "zh-CN": "曲线轨迹",
-        "en-US": "Curve trajectory"
+        "en-US": "Curve trajectory",
+        "ja-JP": "曲線軌跡"
       },
       "title": {
         "zh-CN": "生成曲线轨迹",
-        "en-US": "Generate curve trajectory"
+        "en-US": "Generate curve trajectory",
+        "ja-JP": "曲線軌跡を生成"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) #clipboard-history",
       "text": {
         "zh-CN": "剪贴板",
-        "en-US": "Clipboard"
+        "en-US": "Clipboard",
+        "ja-JP": "クリップボード"
       },
       "title": {
         "zh-CN": "剪贴板历史（长按 Ctrl+V）",
-        "en-US": "Clipboard history (hold Ctrl+V)"
+        "en-US": "Clipboard history (hold Ctrl+V)",
+        "ja-JP": "クリップボード履歴（Ctrl+V 長押し）"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) [data-panel] > [data-return-chart],@root:where(:not([data-rpe-classic-active])) #diagnose-close,@root:where(:not([data-rpe-classic-active])) #history-close",
       "text": {
         "zh-CN": "谱面工具",
-        "en-US": "Chart tools"
+        "en-US": "Chart tools",
+        "ja-JP": "譜面ツール"
       },
       "title": {
         "zh-CN": "返回谱面工具",
-        "en-US": "Back to chart tools"
+        "en-US": "Back to chart tools",
+        "ja-JP": "譜面ツールへ戻る"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) #home-open",
       "text": {
         "zh-CN": "打开谱面",
-        "en-US": "Open chart"
+        "en-US": "Open chart",
+        "ja-JP": "譜面を開く"
       },
       "title": {
         "zh-CN": "打开 JSON / PEZ",
-        "en-US": "Open a JSON / PEZ chart"
+        "en-US": "Open a JSON / PEZ chart",
+        "ja-JP": "JSON / PEZ 譜面を開く"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) #resume-editor",
       "text": {
         "zh-CN": "继续编辑",
-        "en-US": "Keep editing"
+        "en-US": "Keep editing",
+        "ja-JP": "編集を続ける"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) #modal:has(#modal-apply[hidden]) .modal-actions button[value=cancel]",
       "text": {
         "zh-CN": "关闭",
-        "en-US": "Close"
+        "en-US": "Close",
+        "ja-JP": "閉じる"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) #modal:has(#modal-apply:not([hidden])) .modal-actions button[value=cancel]",
       "text": {
         "zh-CN": "取消",
-        "en-US": "Cancel"
+        "en-US": "Cancel",
+        "ja-JP": "キャンセル"
       }
     },
     {
       "selector": "@root:where(:not([data-rpe-classic-active])) .event-sample-bar > .hint",
       "text": {
         "zh-CN": "可连续取样，完成后统一应用 · Esc 全部取消",
-        "en-US": "Sample repeatedly, then apply at once · Esc cancels all"
+        "en-US": "Sample repeatedly, then apply at once · Esc cancels all",
+        "ja-JP": "Sample repeatedly, then apply at once / Esc cancels all"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @new:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "新建谱面",
-        "en-US": "New chart"
+        "en-US": "New chart",
+        "ja-JP": "新しい譜面"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @open:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "打开",
-        "en-US": "Open"
+        "en-US": "Open",
+        "ja-JP": "開く"
       },
       "title": {
         "zh-CN": "打开 JSON / PEZ 谱面，也可载入音乐或图片",
-        "en-US": "Open a JSON / PEZ chart, or load music and images"
+        "en-US": "Open a JSON / PEZ chart, or load music and images",
+        "ja-JP": "JSON / PEZ 譜面、音楽、画像を読み込む"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @save:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "保存",
-        "en-US": "Save"
+        "en-US": "Save",
+        "ja-JP": "保存"
       },
       "title": {
         "zh-CN": "保存到谱面库（Ctrl+S）",
-        "en-US": "Save to the chart library (Ctrl+S)"
+        "en-US": "Save to the chart library (Ctrl+S)",
+        "ja-JP": "譜面ライブラリに保存（Ctrl+S）"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @export:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "导出 PEZ / JSON",
-        "en-US": "Export PEZ / JSON"
+        "en-US": "Export PEZ / JSON",
+        "ja-JP": "PEZ / JSON をエクスポート"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @library:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "谱面库",
-        "en-US": "Chart library"
+        "en-US": "Chart library",
+        "ja-JP": "譜面ライブラリ"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @migrate:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "迁移",
-        "en-US": "Migrate"
+        "en-US": "Migrate",
+        "ja-JP": "移行"
       },
       "title": {
         "zh-CN": "迁移旧 RPE 项目",
-        "en-US": "Migrate old RPE projects"
+        "en-US": "Migrate old RPE projects",
+        "ja-JP": "旧 RPE プロジェクトを移行"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @recover:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "从自动备份恢复",
-        "en-US": "Restore from automatic backups"
+        "en-US": "Restore from automatic backups",
+        "ja-JP": "自動バックアップから復元"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @preferences:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "设置与热键",
-        "en-US": "Settings and hotkeys"
+        "en-US": "Settings and hotkeys",
+        "ja-JP": "設定とショートカット"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @undo:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "撤销（Ctrl+Z）",
-        "en-US": "Undo (Ctrl+Z)"
+        "en-US": "Undo (Ctrl+Z)",
+        "ja-JP": "元に戻す（Ctrl+Z）"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @redo:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "重做（Ctrl+Y）",
-        "en-US": "Redo (Ctrl+Y)"
+        "en-US": "Redo (Ctrl+Y)",
+        "ja-JP": "やり直す（Ctrl+Y）"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @copy:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "复制",
-        "en-US": "Copy"
+        "en-US": "Copy",
+        "ja-JP": "コピー"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @cut:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "剪切",
-        "en-US": "Cut"
+        "en-US": "Cut",
+        "ja-JP": "切り取り"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @paste:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "粘贴",
-        "en-US": "Paste"
+        "en-US": "Paste",
+        "ja-JP": "貼り付け"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @mirror:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "镜像：翻转选中音符，或 X / 旋转事件",
-        "en-US": "Mirror: flip selected notes, or X / rotation events"
+        "en-US": "Mirror: flip selected notes, or X / rotation events",
+        "ja-JP": "選択ノーツ、X 移動・回転イベントを反転"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @delete:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "删除",
-        "en-US": "Delete"
+        "en-US": "Delete",
+        "ja-JP": "削除"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] .batch-execute:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "title": {
         "zh-CN": "批量修改选中音符",
-        "en-US": "Batch edit selected notes"
+        "en-US": "Batch edit selected notes",
+        "ja-JP": "選択ノーツを一括編集"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @toolbar > label:has(#snap-x):where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "吸附",
-        "en-US": "Snap"
+        "en-US": "Snap",
+        "ja-JP": "スナップ"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @toolbar label.y-scale-control:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "Y 缩放",
-        "en-US": "Y scale"
+        "en-US": "Y scale",
+        "ja-JP": "縦スケール"
       },
       "title": {
         "zh-CN": "Y 轴缩放（像素 / 秒）",
-        "en-US": "Y axis scale (pixels per second)"
+        "en-US": "Y axis scale (pixels per second)",
+        "ja-JP": "縦軸スケール（ピクセル / 秒）"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @curve-notes:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "曲线音符",
-        "en-US": "Curve notes"
+        "en-US": "Curve notes",
+        "ja-JP": "曲線ノーツ"
       },
       "title": {
         "zh-CN": "填充曲线音符",
-        "en-US": "Fill curve notes"
+        "en-US": "Fill curve notes",
+        "ja-JP": "曲線ノーツを生成"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @curve-trajectory:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "曲线轨迹",
-        "en-US": "Curve trajectory"
+        "en-US": "Curve trajectory",
+        "ja-JP": "曲線軌跡"
       },
       "title": {
         "zh-CN": "生成曲线轨迹",
-        "en-US": "Generate curve trajectory"
+        "en-US": "Generate curve trajectory",
+        "ja-JP": "曲線軌跡を生成"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] #clipboard-history:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "剪贴板",
-        "en-US": "Clipboard"
+        "en-US": "Clipboard",
+        "ja-JP": "クリップボード"
       },
       "title": {
         "zh-CN": "剪贴板历史（长按 Ctrl+V）",
-        "en-US": "Clipboard history (hold Ctrl+V)"
+        "en-US": "Clipboard history (hold Ctrl+V)",
+        "ja-JP": "クリップボード履歴（Ctrl+V 長押し）"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] [data-panel] > [data-return-chart]:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "谱面工具",
-        "en-US": "Chart tools"
+        "en-US": "Chart tools",
+        "ja-JP": "譜面ツール"
       },
       "title": {
         "zh-CN": "返回谱面工具",
-        "en-US": "Back to chart tools"
+        "en-US": "Back to chart tools",
+        "ja-JP": "譜面ツールへ戻る"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] #diagnose-close:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "谱面工具",
-        "en-US": "Chart tools"
+        "en-US": "Chart tools",
+        "ja-JP": "譜面ツール"
       },
       "title": {
         "zh-CN": "返回谱面工具",
-        "en-US": "Back to chart tools"
+        "en-US": "Back to chart tools",
+        "ja-JP": "譜面ツールへ戻る"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] #history-close:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "谱面工具",
-        "en-US": "Chart tools"
+        "en-US": "Chart tools",
+        "ja-JP": "譜面ツール"
       },
       "title": {
         "zh-CN": "返回谱面工具",
-        "en-US": "Back to chart tools"
+        "en-US": "Back to chart tools",
+        "ja-JP": "譜面ツールへ戻る"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] #home-open:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "打开谱面",
-        "en-US": "Open chart"
+        "en-US": "Open chart",
+        "ja-JP": "譜面を開く"
       },
       "title": {
         "zh-CN": "打开 JSON / PEZ",
-        "en-US": "Open a JSON / PEZ chart"
+        "en-US": "Open a JSON / PEZ chart",
+        "ja-JP": "JSON / PEZ 譜面を開く"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] #resume-editor:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "继续编辑",
-        "en-US": "Keep editing"
+        "en-US": "Keep editing",
+        "ja-JP": "編集を続ける"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] #modal:has(#modal-apply[hidden]) .modal-actions button[value=cancel]:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "关闭",
-        "en-US": "Close"
+        "en-US": "Close",
+        "ja-JP": "閉じる"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] #modal:has(#modal-apply:not([hidden])) .modal-actions button[value=cancel]:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "取消",
-        "en-US": "Cancel"
+        "en-US": "Cancel",
+        "ja-JP": "キャンセル"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] .event-sample-bar > .hint:where([data-rc-native-surface],[data-rc-native-surface] *)",
       "text": {
         "zh-CN": "可连续取样，完成后统一应用 · Esc 全部取消",
-        "en-US": "Sample repeatedly, then apply at once · Esc cancels all"
+        "en-US": "Sample repeatedly, then apply at once · Esc cancels all",
+        "ja-JP": "Sample repeatedly, then apply at once / Esc cancels all"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @metadata",
       "text": {
         "zh-CN": "谱面基本信息",
-        "en-US": "Chart information"
+        "en-US": "Chart information",
+        "ja-JP": "譜面情報"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @bpm",
       "text": {
         "zh-CN": "拍数管理",
-        "en-US": "BPM management"
+        "en-US": "BPM management",
+        "ja-JP": "BPM 管理"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @tab-lines",
       "text": {
         "zh-CN": "判定线管理",
-        "en-US": "Judge lines"
+        "en-US": "Judge lines",
+        "ja-JP": "判定ライン"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @curve-notes",
       "text": {
         "zh-CN": "填充曲线音符",
-        "en-US": "Curve notes"
+        "en-US": "Curve notes",
+        "ja-JP": "曲線ノーツ"
       }
     },
     {
       "selector": "@root[data-rpe-classic-active] @curve-trajectory",
       "text": {
         "zh-CN": "生成曲线轨迹",
-        "en-US": "Curve trajectory"
+        "en-US": "Curve trajectory",
+        "ja-JP": "曲線軌跡"
       }
     }
   ],
@@ -2561,7 +2645,8 @@
       "set": {
         "content": {
           "zh-CN": "\"全局事件\"",
-          "en-US": "\"Global events\""
+          "en-US": "\"Global events\"",
+          "ja-JP": "「グローバルイベント」"
         },
         "color": "var(--rpen-text)",
         "font-weight": "400",
@@ -6720,7 +6805,8 @@
       "set": {
         "content": {
           "zh-CN": "\"全局事件\"",
-          "en-US": "\"Global events\""
+          "en-US": "\"Global events\"",
+          "ja-JP": "「グローバルイベント」"
         },
         "color": "var(--rpen-text)",
         "font-weight": "400",
@@ -9764,7 +9850,8 @@
       "type": "color",
       "label": {
         "zh-CN": "强调色",
-        "en-US": "Accent color"
+        "en-US": "Accent color",
+        "ja-JP": "アクセント色"
       },
       "default": "#efcd78"
     },
@@ -9772,7 +9859,8 @@
       "type": "color",
       "label": {
         "zh-CN": "界面底色",
-        "en-US": "Base color"
+        "en-US": "Base color",
+        "ja-JP": "基本色"
       },
       "default": "#252527"
     },
@@ -9780,7 +9868,8 @@
       "type": "color",
       "label": {
         "zh-CN": "文字颜色",
-        "en-US": "Text color"
+        "en-US": "Text color",
+        "ja-JP": "文字色"
       },
       "default": "#ebe7e0"
     },
@@ -9788,7 +9877,8 @@
       "type": "color",
       "label": {
         "zh-CN": "事件底色",
-        "en-US": "Event fill"
+        "en-US": "Event fill",
+        "ja-JP": "イベントの塗り色"
       },
       "default": "#4d6476"
     },
@@ -9796,7 +9886,8 @@
       "type": "color",
       "label": {
         "zh-CN": "事件边框与曲线",
-        "en-US": "Event border and curve"
+        "en-US": "Event border and curve",
+        "ja-JP": "イベントの枠と曲線"
       },
       "default": "#6e8a9e"
     },
@@ -9804,7 +9895,8 @@
       "type": "number",
       "label": {
         "zh-CN": "边框强度（%）",
-        "en-US": "Border strength (%)"
+        "en-US": "Border strength (%)",
+        "ja-JP": "枠の濃さ（%）"
       },
       "min": 50,
       "max": 200,
@@ -9815,7 +9907,8 @@
       "type": "number",
       "label": {
         "zh-CN": "侧栏宽度",
-        "en-US": "Sidebar width"
+        "en-US": "Sidebar width",
+        "ja-JP": "サイドバー幅"
       },
       "min": 300,
       "max": 560,
@@ -9907,7 +10000,8 @@
       "id": "chart",
       "label": {
         "zh-CN": "谱面",
-        "en-US": "Chart"
+        "en-US": "Chart",
+        "ja-JP": "譜面"
       },
       "items": [
         "metadata",
@@ -9921,7 +10015,8 @@
       "id": "generate",
       "label": {
         "zh-CN": "生成",
-        "en-US": "Generate"
+        "en-US": "Generate",
+        "ja-JP": "生成"
       },
       "items": [
         "curve-notes",
@@ -9937,7 +10032,8 @@
       "id": "modes",
       "label": {
         "zh-CN": "编辑模式",
-        "en-US": "Edit modes"
+        "en-US": "Edit modes",
+        "ja-JP": "編集モード"
       },
       "items": [
         "noise-areas-tool",
@@ -9951,7 +10047,8 @@
       "id": "assist",
       "label": {
         "zh-CN": "检查与协作",
-        "en-US": "Checks and collaboration"
+        "en-US": "Checks and collaboration",
+        "ja-JP": "検査と共同作業"
       },
       "items": [
         "diagnose",

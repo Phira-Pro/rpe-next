@@ -5,6 +5,7 @@ import { setLocale, t, BUILTIN_LOCALES } from '../src/i18n.mjs';
 import { pt } from '../pro/locale.mjs';
 import { readFile } from 'node:fs/promises';
 import { rewriteModModule, resolveModImport } from '../src/core/mod-package.mjs';
+import { restoreNativeLocale } from '../pro/entry.mjs';
 
 test('native frame transport validates size and exposes bottom-up RGBA without copying', () => {
   const buffer = new ArrayBuffer(16 + 64 * 64 * 4), view = new DataView(buffer);
@@ -16,6 +17,15 @@ test('native frame transport validates size and exposes bottom-up RGBA without c
   assert.deepEqual(previewSize(1920,1080),{width:960,height:540});
   assert.deepEqual(previewSize(2000,1000,1.5),{width:960,height:640});
   for(const ratio of [0.5,1,1.5,16/9,3]) { const size=previewSize(3000,2000,ratio); assert.ok(size.width<=960&&size.height<=720); assert.equal(size.width%2,0); assert.equal(size.height%2,0); }
+});
+
+test('a fresh host origin restores native language before importing interface modules', async () => {
+  const storage = new Map();
+  const api = { setItem: (key,value)=>storage.set(key,value), removeItem:key=>storage.delete(key) };
+  const host = { async request(path, body) { assert.equal(path,'storage'); assert.deepEqual(JSON.parse(body),['read','preferences','ui-settings']); return {result:{data:{values:{'rpe-next-locale-v1':'ja-JP'}}}}; } };
+  await restoreNativeLocale(host,api); assert.equal(storage.get('rpe-next-locale-v1'),'ja-JP');
+  host.request=async()=>({result:null}); await restoreNativeLocale(host,api); assert.equal(storage.size,0);
+  host.request=async()=>{throw Error('Unavailable')}; await assert.rejects(restoreNativeLocale(host,api),/Unavailable/);
 });
 
 test('Classic translations resolve through the allowed shared locale interface', async () => {

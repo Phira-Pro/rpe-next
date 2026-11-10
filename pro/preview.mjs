@@ -46,8 +46,8 @@ export function installNativePreview({ editor, host }) {
       if (surface.canvas.parentElement !== surface.original.parentElement) surface.original.after(surface.canvas, surface.message);
       const style = getComputedStyle(surface.original);
       const active = visible() && (surface.fullscreen ? editor.preview.visible : document.querySelector('#realtime-enabled').checked);
-      surface.canvas.hidden = !active; surface.original.classList.toggle('pro-native-source', active);
-      surface.original.parentElement.classList.toggle('pro-native-active', active);
+      surface.canvas.hidden = !active; surface.original.classList.toggle('pro-native-source', mode === 'phira');
+      surface.original.parentElement.classList.toggle('pro-native-active', mode === 'phira');
       surface.message.hidden = !active || !surface.message.textContent;
       for (const target of [surface.canvas, surface.message]) Object.assign(target.style, { left: surface.original.offsetLeft + 'px', top: surface.original.offsetTop + 'px', width: surface.original.clientWidth + 'px', height: surface.original.clientHeight + 'px' });
       surface.canvas.style.opacity = surface.fullscreen ? '1' : style.opacity;

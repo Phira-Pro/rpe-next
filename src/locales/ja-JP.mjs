@@ -2,6 +2,21 @@
 import enUS from './en-US.mjs';
 
 export const japaneseText = Object.freeze({
+  'Render':'レンダリング', 'Chart library':'譜面ライブラリ', 'Migrate':'移行', 'Snap':'スナップ', 'Y scale':'縦スケール',
+  'Generate':'生成', 'Edit modes':'編集モード', 'Checks and collaboration':'検査と共同作業',
+  'Open chart':'譜面を開く', 'Keep editing':'編集を続ける', 'Chart information':'譜面情報', 'BPM management':'BPM 管理',
+  'Curve trajectory':'曲線軌跡', 'Audio analysis':'音声分析', 'Note tracking':'ノーツ追跡',
+  'Global events':'グローバルイベント', '"Global events"':'「グローバルイベント」', 'Spatial trajectories':'空間軌跡',
+  'AI Assist':'AI 支援', 'Collaboration':'共同編集', 'Place notes directly':'ノーツを直接配置',
+  'Open a JSON / PEZ chart, or load music and images':'JSON / PEZ 譜面、音楽、画像を読み込む',
+  'Open a JSON / PEZ chart':'JSON / PEZ 譜面を開く', 'Save to the chart library (Ctrl+S)':'譜面ライブラリに保存（Ctrl+S）',
+  'Export PEZ / JSON':'PEZ / JSON をエクスポート', 'Migrate old RPE projects':'旧 RPE プロジェクトを移行',
+  'Restore from automatic backups':'自動バックアップから復元', 'Settings and hotkeys':'設定とショートカット',
+  'Undo (Ctrl+Z)':'元に戻す（Ctrl+Z）', 'Redo (Ctrl+Y)':'やり直す（Ctrl+Y）',
+  'Mirror: flip selected notes, or X / rotation events':'選択ノーツ、X 移動・回転イベントを反転',
+  'Y axis scale (pixels per second)':'縦軸スケール（ピクセル / 秒）', 'Clipboard history (hold Ctrl+V)':'クリップボード履歴（Ctrl+V 長押し）',
+  'Accent color':'アクセント色', 'Base color':'基本色', 'Text color':'文字色', 'Event fill':'イベントの塗り色',
+  'Event border and curve':'イベントの枠と曲線', 'Border strength (%)':'枠の濃さ（%）', 'Sidebar width':'サイドバー幅',
   'File':'ファイル', 'New':'新規', 'Open':'開く', 'Open JSON / PEZ':'JSON / PEZ を開く',
   'Save':'保存', 'Save as':'名前を付けて保存', 'Export':'エクスポート', 'Import':'インポート',
   'Settings':'設定', 'Help':'ヘルプ', 'Mods':'拡張機能', 'Mod manager':'拡張機能マネージャー',

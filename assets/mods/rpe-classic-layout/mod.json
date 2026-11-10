@@ -4,7 +4,8 @@
   "id": "rpe-classic-layout",
   "name": {
     "zh-CN": "RPE Classic · 经典编辑布局",
-    "en-US": "RPE Classic · Editor layout"
+    "en-US": "RPE Classic · Editor layout",
+    "ja-JP": "RPE Classic / Editor layout"
   },
   "version": "0.2.5",
   "x-tested-host": {
@@ -19,7 +20,8 @@
   "author": "cmdysj",
   "description": {
     "zh-CN": "RPE Classic 编辑器皮肤的配套布局。内置版随皮肤选择自动启停；也可在此启用或停用。独立导出版需要同时应用同版本皮肤。保留原生编辑事务，不修改音符皮肤。",
-    "en-US": "The companion layout for the RPE Classic editor skin. The bundled layout follows skin selection and can also be enabled or disabled here. Portable exports require the matching skin. Preserves native editing transactions and note skins."
+    "en-US": "The companion layout for the RPE Classic editor skin. The bundled layout follows skin selection and can also be enabled or disabled here. Portable exports require the matching skin. Preserves native editing transactions and note skins.",
+    "ja-JP": "The companion layout for the RPE Classic editor skin. The bundled layout follows skin selection and can also be enabled or disabled here. Portable exports require the matching skin. Preserves native editing transactions and note skins."
   },
   "entry": "main.mjs",
   "dependencies": [],
@@ -31,7 +33,8 @@
       "type": "number",
       "label": {
         "zh-CN": "事件曲线宽度",
-        "en-US": "Event curve width"
+        "en-US": "Event curve width",
+        "ja-JP": "Event curve width"
       },
       "default": 4.5,
       "min": 0.5,
@@ -42,7 +45,8 @@
       "type": "boolean",
       "label": {
         "zh-CN": "启用经典布局",
-        "en-US": "Classic layout"
+        "en-US": "Classic layout",
+        "ja-JP": "Classic layout"
       },
       "default": true
     },
@@ -50,7 +54,8 @@
       "type": "shortcut",
       "label": {
         "zh-CN": "临时切换墨线布局",
-        "en-US": "Toggle Inkline layout"
+        "en-US": "Toggle Inkline layout",
+        "ja-JP": "Toggle Inkline layout"
       },
       "default": "CTRL&ALT&L"
     }

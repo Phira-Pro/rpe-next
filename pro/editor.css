@@ -53,7 +53,7 @@
   .phira-editor .pro-panel-dock { display:flex;align-items:center;gap:5px;flex:none;height:26px;padding:0 6px;background:var(--rpen-surface,#303030); }
   .phira-editor .pro-panel-dock[hidden] { display:none; }
   .phira-editor .pro-panel-dock button { flex:none;width:auto!important;min-width:64px!important;height:24px!important;min-height:24px!important;padding:2px 9px!important;font-size:12px!important;text-align:center; }
-  .phira-editor .pro-fold-panel[data-pro-group=top][data-pro-folded=true] { display:none!important; }
+  :root:not([data-rpe-classic-active]) .phira-editor .pro-fold-panel[data-pro-group=top][data-pro-folded=true] { display:none!important; }
   .phira-editor > header[data-pro-folded=false] { min-height:32px!important;padding:3px 26px 3px 8px!important;gap:6px!important;flex-wrap:nowrap!important; }
   .phira-editor > header .brand { font-size:14px!important; }
   .phira-editor > header .brand img { width:20px!important;height:20px!important; }
@@ -74,10 +74,10 @@
   .phira-editor .pro-fold-panel { position:relative; }
   .phira-editor button.pro-panel-toggle { display:block!important;position:absolute;right:0;top:0;z-index:8;width:22px!important;min-width:22px!important;height:22px!important;min-height:22px!important;margin:0!important;padding:1px 3px!important;font:11px/20px system-ui!important;color:var(--rpen-text,#ddd)!important;background:var(--rpen-surface,#303030)!important;border:1px solid var(--rpen-border,#666)!important;box-shadow:none!important;white-space:nowrap; }
   .phira-editor button.pro-panel-toggle::before { display:none!important; }
-  .phira-editor .pro-fold-panel[data-pro-folded=true] { display:flex!important;flex:none!important;align-items:center!important;min-height:22px!important;height:22px!important;max-height:22px!important;margin:0!important;padding:0!important;overflow:hidden!important; }
-  .phira-editor .pro-fold-panel[data-pro-folded=true] > :not(.pro-panel-toggle) { display:none!important; }
+  :root:not([data-rpe-classic-active]) .phira-editor .pro-fold-panel[data-pro-folded=true] { display:flex!important;flex:none!important;align-items:center!important;min-height:22px!important;height:22px!important;max-height:22px!important;margin:0!important;padding:0!important;overflow:hidden!important; }
+  :root:not([data-rpe-classic-active]) .phira-editor .pro-fold-panel[data-pro-folded=true] > :not(.pro-panel-toggle) { display:none!important; }
   .phira-editor .pro-fold-panel[data-pro-folded=true] > .pro-panel-toggle { width:100%!important;text-align:left; }
-  .phira-editor .workspace[data-pro-inspector-folded=true] { grid-template-columns:minmax(0,1fr) 22px!important;grid-template-rows:minmax(0,1fr)!important;overflow:hidden; }
+  :root:not([data-rpe-classic-active]) .phira-editor .workspace[data-pro-inspector-folded=true] { grid-template-columns:minmax(0,1fr) 22px!important;grid-template-rows:minmax(0,1fr)!important;overflow:hidden; }
   .phira-editor .inspector[data-pro-folded=true] { height:100%!important;max-height:none!important;min-height:0!important; }
   .phira-editor .inspector[data-pro-folded=true] > .pro-panel-toggle { height:100%!important;width:22px!important;writing-mode:vertical-rl;text-align:left; }
   .phira-editor .inspector[data-pro-folded=false] { padding-top:22px;overflow:auto; }
@@ -109,7 +109,9 @@
 /* Classic owns its geometry. Compact folding rules must not reshape its slots. */
 :root[data-rpe-classic-active] .phira-editor > header { display:flex!important;position:fixed!important;inset:0 0 auto!important;height:36px!important;min-height:36px!important;max-height:36px!important;padding:2px 8px!important;gap:6px!important;flex-wrap:nowrap!important;z-index:30;background:#303030;box-sizing:border-box; }
 :root[data-rpe-classic-active] .phira-editor > header > :not(.pro-panel-toggle) { display:revert!important; }
-:root[data-rpe-classic-active] .phira-editor > header nav { display:flex!important;min-width:0;margin-left:auto;overflow-x:auto;flex-wrap:nowrap; }
+:root[data-rpe-classic-active] .phira-editor > header nav { display:flex!important;flex:1 1 auto!important;align-items:center!important;width:0!important;min-width:0!important;max-width:none!important;height:32px!important;margin-left:auto!important;overflow-x:auto!important;overflow-y:hidden!important;flex-wrap:nowrap!important;gap:3px!important; }
+:root[data-rpe-classic-active] .phira-editor > header nav .skin-control-group { display:contents!important; }
+:root[data-rpe-classic-active] .phira-editor > header nav button { flex:none!important;white-space:nowrap!important; }
 :root[data-rpe-classic-active] .phira-editor > header .brand { display:flex!important;flex:none;font-size:14px!important; }
 :root[data-rpe-classic-active] .phira-editor > header .brand img { width:20px!important;height:20px!important; }
 :root[data-rpe-classic-active] .phira-editor > header #document-name { font-size:12px!important;min-width:40px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
@@ -119,10 +121,10 @@
 :root[data-rpe-classic-active] .phira-editor .transport > #rpe-classic-toolbar { display:block!important; }
 :root[data-rpe-classic-active] .phira-editor .workspace { grid-template-columns:calc(1350px * var(--rc-s)) calc(570px * var(--rc-s))!important;grid-template-rows:minmax(0,1fr)!important; }
 :root[data-rpe-classic-active] .phira-editor .inspector { display:block!important;height:100%!important;max-height:none!important;padding-top:0!important; }
-:root[data-rpe-classic-active] .phira-editor .inspector > :not(.pro-panel-toggle):not([hidden]) { display:revert!important; }
 :root[data-rpe-classic-active] .phira-editor :is(.editor-toolbar,.editor-footer) { display:none!important; }
 :root[data-rpe-classic-active] .phira-editor #rpe-classic-toolbar :is(input,select) { min-width:0!important; }
 :root[data-rpe-classic-active] #rpe-classic-pro-touch { display:flex;align-items:center;gap:calc(6px * var(--rc-s)); }
 :root[data-rpe-classic-active] .phira-editor #rpe-classic-pro-touch #pro-touch-scroll { border:0!important;background:transparent!important;box-shadow:none!important;width:calc(30px * var(--rc-s))!important;min-width:0!important;height:calc(40px * var(--rc-s))!important;padding:0!important;color:#fff!important; }
 :root[data-rpe-classic-active] #rpe-classic-pro-touch #pro-touch-scroll svg { width:calc(24px * var(--rc-s));height:calc(24px * var(--rc-s)); }
 :root[data-rpe-classic-active] .phira-editor #rpe-classic-pro-touch #pro-touch-commands { flex:1;min-width:0!important;width:0!important;height:calc(36px * var(--rc-s))!important;min-height:0!important;padding:0 calc(3px * var(--rc-s))!important;font:calc(17px * var(--rc-s))/1.1 sans-serif!important;border:0!important;border-radius:0!important;background:#fff!important;color:#111!important;overflow:hidden;text-overflow:ellipsis; }
+:root[data-rpe-classic-active][lang^=ja] .phira-editor #rpe-classic-pro-touch #pro-touch-commands { font-size:calc(13px * var(--rc-s))!important; }

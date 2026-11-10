@@ -86,12 +86,14 @@
       "id": "rpe-classic",
       "name": {
         "zh-CN": "RPE Classic · 经典编辑器",
-        "en-US": "RPE Classic · Editor"
+        "en-US": "RPE Classic · Editor",
+        "ja-JP": "RPE Classic / Editor"
       },
       "author": "cmdysj",
       "description": {
         "zh-CN": "经典 RPE 风格的编辑器界面。内置版选择后自动启用配套经典编辑布局，停用时以墨线为回退外观，不改变音符皮肤。独立导出版需要同时应用皮肤并启用同版本配套模组。",
-        "en-US": "A classic RPE editor interface. The bundled version loads its matching layout automatically when selected, with an Inkline fallback when disabled. Portable exports require the matching skin and layout mod together. Does not change note skins."
+        "en-US": "A classic RPE editor interface. The bundled version loads its matching layout automatically when selected, with an Inkline fallback when disabled. Portable exports require the matching skin and layout mod together. Does not change note skins.",
+        "ja-JP": "A classic RPE editor interface. The bundled version loads its matching layout automatically when selected, with an Inkline fallback when disabled. Portable exports require the matching skin and layout mod together. Does not change note skins."
       },
       "colorScheme": "dark",
       "skinVersion": "0.2.5",
@@ -101,7 +103,8 @@
       },
       "license": {
         "zh-CN": "代码与原创图形使用PolyForm Noncommercial 1.0.0；旧RPE界面图片保留其原有权利，经典字体读取宿主资源。素材来源见NOTICE、ASSETS.md，墨线字体按OFL 1.1。 墨线字体、图标与样式沿用内置 Inkline。界面字体为 Noto Sans SC 子集（© 2014-2021 Adobe，SIL Open Font License 1.1，完整许可见字体内嵌元数据）；图标与样式为本皮肤原创。",
-        "en-US": "Code and original graphics: PolyForm Noncommercial 1.0.0. Original RPE UI images retain their existing rights; see NOTICE and ASSETS.md. The classic font is supplied by the host. Inkline font, icons and styles are reused from the built-in skin. The interface font is a Noto Sans SC subset (© 2014-2021 Adobe, SIL Open Font License 1.1; the full license is embedded in the font metadata); icons and styles are original to this skin."
+        "en-US": "Code and original graphics: PolyForm Noncommercial 1.0.0. Original RPE UI images retain their existing rights; see NOTICE and ASSETS.md. The classic font is supplied by the host. Inkline font, icons and styles are reused from the built-in skin. The interface font is a Noto Sans SC subset (© 2014-2021 Adobe, SIL Open Font License 1.1; the full license is embedded in the font metadata); icons and styles are original to this skin.",
+        "ja-JP": "Code and original graphics: PolyForm Noncommercial 1.0.0. Original RPE UI images retain their existing rights; see NOTICE and ASSETS.md. The classic font is supplied by the host. Inkline font, icons and styles are reused from the built-in skin. The interface font is a Noto Sans SC subset (© 2014-2021 Adobe, SIL Open Font License 1.1; the full license is embedded in the font metadata); icons and styles are original to this skin."
       }
     },
     "bytes": 3033641
