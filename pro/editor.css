@@ -19,6 +19,7 @@
 .pro-closing body { opacity:0;transition:opacity 180ms ease;pointer-events:none; }
 .pro-panel-toggle { display:none!important; }
 .pro-panel-dock { display:none; }
+.phira-editor > header nav { min-width:0;overflow-x:auto;justify-content:safe flex-end;overscroll-behavior-x:contain; }
 .phira-editor .editor,.phira-editor .inspector { min-width:0;min-height:0; }
 .phira-editor canvas { touch-action:none; }
 .phira-editor #storage-open-root,.phira-editor #storage-move-root,.phira-editor #storage-backup-folder,.phira-editor #storage-use-root,.phira-editor #open-project-folder { display:none; }
@@ -59,7 +60,7 @@
   .phira-editor > header .brand { font-size:14px!important; }
   .phira-editor > header .brand img { width:20px!important;height:20px!important; }
   .phira-editor > header #document-name { font-size:12px!important;flex:1 1 100px;min-width:48px;max-width:160px; }
-  .phira-editor > header nav { margin-left:auto;justify-content:safe flex-end;flex:0 1 auto!important;min-width:0;max-width:100%;overflow-x:auto;padding-bottom:0; }
+  .phira-editor > header nav { margin-left:auto;flex:0 1 auto!important;max-width:100%;padding-bottom:0; }
   .phira-editor > header nav button { min-height:26px!important;height:26px!important;padding:2px 7px!important; }
   .phira-editor > header nav button:not(#preferences):not(#help) { font-size:12px!important; }
   .phira-editor > header nav button::before { width:16px!important;height:16px!important; }

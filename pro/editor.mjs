@@ -38,7 +38,16 @@ document.addEventListener('phira-editor-close',close);
 host.requestClose=close;
 const playButton=action(pt('Pro 试玩'),()=>openPlay());playButton.id='pro-play';
 const returnButton=action(pt('返回 Pro'),close);returnButton.id='pro-return';
-document.querySelector('header nav').append(...installLibrary({editor,host,action,save,isBusy:()=>busy,setBusy,status,report}),playButton,returnButton);
+const fileNav=document.querySelector('body > header nav');
+fileNav.append(...installLibrary({editor,host,action,save,isBusy:()=>busy,setBusy,status,report}),playButton,returnButton);
+// A regular mouse wheel can reach the rest of the menu in a narrow window.
+fileNav.addEventListener('wheel',event=>{
+  if(event.ctrlKey||event.metaKey||fileNav.scrollWidth<=fileNav.clientWidth)return;
+  const unit=event.deltaMode===1?16:event.deltaMode===2?fileNav.clientWidth:1;
+  const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;
+  if(!delta)return;
+  fileNav.scrollLeft+=delta*unit;event.preventDefault();
+},{passive:false});
 
 let touch;
 const scrollButton=action('⇅',()=>touch.setMode(touch.mode==='pan'?'edit':'pan'));
