@@ -110,7 +110,6 @@
 }
 /* Classic owns its geometry. Compact folding rules must not reshape its slots. */
 :root[data-rpe-classic-active] .phira-editor > header { display:flex!important;position:fixed!important;inset:0 0 auto!important;height:36px!important;min-height:36px!important;max-height:36px!important;padding:2px 8px!important;gap:6px!important;flex-wrap:nowrap!important;z-index:30;background:#303030;box-sizing:border-box; }
-:root[data-rpe-classic-active] .phira-editor > header > :not(.pro-panel-toggle) { display:revert!important; }
 :root[data-rpe-classic-active] .phira-editor > header nav { display:flex!important;flex:0 1 auto!important;align-items:center!important;width:auto!important;min-width:0!important;max-width:none!important;height:32px!important;margin-inline-start:auto!important;overflow-x:auto!important;overflow-y:hidden!important;flex-wrap:nowrap!important;gap:3px!important; }
 :root[data-rpe-classic-active] .phira-editor > header nav .skin-control-group { display:contents!important; }
 :root[data-rpe-classic-active] .phira-editor > header nav button { flex:none!important;white-space:nowrap!important; }
