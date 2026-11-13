@@ -4,12 +4,13 @@ import { mixRenderPcm } from '../core/render-audio-mix.mjs';
 import { checkRenderAbort, renderAwait, renderYield } from '../core/render-task.mjs';
 import { loadMediaBunny } from './video-encoder.mjs';
 import { t } from '../i18n.mjs';
+import { decodeEditorAudio } from './audio-decode.mjs';
 
 const contexts = new Map();
 export async function decodeBytes(value, sampleRate=48000, signal) {
   if(!contexts.has(sampleRate)){if(contexts.size>=2)contexts.delete(contexts.keys().next().value);contexts.set(sampleRate,new OfflineAudioContext(2,1,sampleRate));}
   const bytes=value instanceof Blob?await renderAwait(value.arrayBuffer(),signal):value.buffer.slice(value.byteOffset,value.byteOffset+value.byteLength);
-  const buffer=await renderAwait(contexts.get(sampleRate).decodeAudioData(bytes),signal);
+  const buffer=await renderAwait(decodeEditorAudio(contexts.get(sampleRate),bytes,{signal}),signal);
   if(buffer.length*buffer.numberOfChannels*4>16*1024**2)throw Error(t('render.soundBudget'));
   return buffer;
 }

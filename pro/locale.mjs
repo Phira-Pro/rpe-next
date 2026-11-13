@@ -1,6 +1,8 @@
 // GPL-3.0-only. Host controls are independent of chart names and asset content.
 import { currentLocale } from '../src/i18n.mjs';
 const labels = {
+  '此 iOS 版本不能直接选择文件夹。请先在「文件」中压缩文件夹，再选择生成的 ZIP。':['This iOS version cannot select a folder directly. Compress the folder in Files, then select the ZIP.','この iOS ではフォルダを直接選択できません。「ファイル」でフォルダを圧縮してから、作成した ZIP を選択してください。'],
+  '选择 ZIP':['Choose ZIP','ZIP を選択'], 'ZIP 文件过大':['The ZIP file is too large.','ZIP ファイルが大きすぎます。'],
   'Pro 试玩':['Pro trial','Pro 試遊'], '返回 Pro':['Return to Pro','Pro に戻る'],
   '触控操作':['Touch controls','タッチ操作'], '编辑':['Edit','編集'], '框选':['Box select','範囲選択'], '多选':['Multi-select','複数選択'],
   '放置音符或取点':['Place note / pick point','ノーツ配置 / 点を取得'], '放置事件':['Place event','イベントを配置'],

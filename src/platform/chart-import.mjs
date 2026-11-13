@@ -1,5 +1,6 @@
 import { openFiles, resourceReferences } from './files.mjs';
 import { t } from '../i18n.mjs';
+import { isIOS } from './device.mjs';
 
 const accepts = { pez: '.pez,.zip', json: '.json,.pec', music: 'audio/*', cover: 'image/*', separate: '' };
 const extensions = {
@@ -10,9 +11,7 @@ const extensions = {
 };
 
 export function chartImportAccept(kind, device = globalThis.navigator ?? {}) {
-  const ios = /iPad|iPhone|iPod/i.test(device.userAgent ?? '')
-    || device.platform === 'MacIntel' && device.maxTouchPoints > 1;
-  return ios && (kind === 'pez' || kind === 'json' || kind === 'separate') ? '' : accepts[kind];
+  return isIOS(device) ? '' : accepts[kind];
 }
 
 export function isChartImportFile(kind, file) {

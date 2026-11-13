@@ -5,15 +5,20 @@ import { readZip } from '../src/platform/archive.mjs';
 export const FOLDER_TYPE = 'application/vnd.phira.rpen-folder+zip';
 export const FOLDER_LIMITS = { maxFiles: 20000, maxBytes: 512 * 1024 ** 2, maxFileBytes: 512 * 1024 ** 2 };
 
-export async function directoryFiles(buffer) {
+export async function directoryFiles(buffer, archiveName) {
   const entries = await readZip(buffer, FOLDER_LIMITS);
+  const paths = [...entries.keys()].filter(path => !path.endsWith('/') &&
+    (!archiveName || !path.startsWith('__MACOSX/') && !path.split('/').includes('.DS_Store')));
+  const commonRoot = paths[0]?.split('/')[0];
+  const wrap = archiveName && !paths.every(path => path.startsWith(commonRoot + '/'));
+  const fallbackRoot = archiveName?.replace(/\.zip$/i, '').replace(/[^\p{L}\p{N}_ -]/gu, '_').trim() || 'folder';
   const files = [];
-  for (const [path, bytes] of entries) {
-    if (path.endsWith('/')) continue;
-    const parts = path.split('/');
+  for (const path of paths) {
+    const relative = wrap ? fallbackRoot + '/' + path : path;
+    const parts = relative.split('/');
     if (parts.length < 2 || parts.some(part => !part || part === '.')) throw Error('目录中的文件路径无效');
-    const file = new File([bytes], parts.at(-1));
-    Object.defineProperty(file, 'webkitRelativePath', { value: path });
+    const file = new File([entries.get(path)], parts.at(-1));
+    Object.defineProperty(file, 'webkitRelativePath', { value: relative });
     files.push(file);
   }
   if (!files.length) throw Error('所选文件夹中没有文件');

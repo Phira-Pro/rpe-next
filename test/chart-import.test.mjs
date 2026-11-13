@@ -76,7 +76,7 @@ test('谱面包允许 PEZ/ZIP，散文件不限制附加素材类型，保留 iO
   ]) {
     assert.equal(chartImportAccept('pez', device), ''); assert.equal(chartImportAccept('json', device), '');
     assert.equal(chartImportAccept('separate', device), '');
-    assert.equal(chartImportAccept('music', device), 'audio/*'); assert.equal(chartImportAccept('cover', device), 'image/*');
+    assert.equal(chartImportAccept('music', device), ''); assert.equal(chartImportAccept('cover', device), '');
   }
   for (const device of [
     { userAgent: 'Windows', platform: 'Win32', maxTouchPoints: 10 },
@@ -85,6 +85,7 @@ test('谱面包允许 PEZ/ZIP，散文件不限制附加素材类型，保留 iO
   ]) {
     assert.equal(chartImportAccept('pez', device), '.pez,.zip'); assert.equal(chartImportAccept('json', device), '.json,.pec');
     assert.equal(chartImportAccept('separate', device), '');
+    assert.equal(chartImportAccept('music', device), 'audio/*'); assert.equal(chartImportAccept('cover', device), 'image/*');
   }
 });
 

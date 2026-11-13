@@ -12,6 +12,7 @@ import { installLinkedMigration } from './linked.mjs';
 import { nativePlaybackExport } from './snapshot.mjs';
 import { installNativePreview } from './preview.mjs';
 import { pt, translateProUi } from './locale.mjs';
+import { installFileInputs } from './file-input.mjs';
 
 const host=globalThis.phiraEditor;
 // app.mjs has completed its required storage and editor setup by this point.
@@ -23,6 +24,7 @@ const status=document.querySelector('#status');
 const buttons=[];
 const action=(label,fn,options={})=>{const button=document.createElement('button');button.type='button';button.textContent=pt(label);button.title=pt(options.title??label);button.onclick=async()=>{try{await fn();}catch(error){report(error);}};buttons.push(button);return button;};
 const report=error=>{status.textContent=error.message;editor.notify(error.message,'error');};
+installFileInputs(report);
 installFolders(report);
 installLinkedMigration(host).catch(report);
 let busy=false,suspended=false,closed=false;

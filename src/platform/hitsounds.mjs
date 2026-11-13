@@ -2,6 +2,7 @@ import { upperBound } from '../core/beat.mjs';
 import { assetBytes } from './files.mjs';
 import { assetUrl } from '../core/asset-url.mjs';
 import { t } from '../i18n.mjs';
+import { decodeEditorAudio } from './audio-decode.mjs';
 
 export function hitTimeline(chart, tempo, offsets = [0, 0], lineIndex = null) {
   const entries = [];
@@ -41,7 +42,7 @@ export class HitSounds {
       const bytes = assetBytes(assets, name, chartName), builtin = ['tap', 'drag', 'flick'].includes(name);
       if (!bytes && (!builtin || this.skinBuffers.has(name))) return;
       try {
-        const decoded = bytes ? await context.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)) : await this.defaultBuffer(name, context);
+        const decoded = bytes ? await decodeEditorAudio(context, bytes) : await this.defaultBuffer(name, context);
         if (generation === this.generation) { this.buffers.set(name, decoded); this.streamsStarted = false; }
       } catch (error) { if (!bytes && builtin) return { name, error }; }
     }));
@@ -64,7 +65,7 @@ export class HitSounds {
     const pending = (async () => {
       const response = await fetch(assetUrl(`rpe/SE/${name}.ogg`), { signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw Error('HTTP ' + response.status);
-      const decoded = await context.decodeAudioData(await response.arrayBuffer());
+      const decoded = await decodeEditorAudio(context, await response.arrayBuffer());
       this.defaultBuffers.set(name, decoded); return decoded;
     })();
     this.defaultPending.set(name, pending);

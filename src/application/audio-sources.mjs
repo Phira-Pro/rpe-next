@@ -4,6 +4,7 @@ import { STEM_NAMES, SEPARATION_MODELS, audioSourceColor, sourceAudioRange } fro
 import { checkAgentSignal, agentAbort } from '../core/agent-commands.mjs';
 import { ResourceCache } from '../core/resource-cache.mjs';
 import { t } from '../i18n.mjs';
+import { decodeEditorAudio } from '../platform/audio-decode.mjs';
 
 export class AudioSources extends EventTarget {
   constructor(getAudio, { separator = new LocalAudioSeparator(), mixCacheBytes = 192 * 1024 ** 2, mixCacheEntries = 4 } = {}) {
@@ -147,7 +148,7 @@ export class AudioSources extends EventTarget {
     if (this.replacing) throw Error(t('audio-sources.sbf382b3'));
     this.sync(); if (!this.original) throw Error(t('audio-sources.s2a329d5'));
     if (bytes.byteLength > 512 * 1024 ** 2 || this.entries.size >= 33) throw Error(t('audio-sources.se25d846'));
-    const original = this.original, buffer = await this.getAudio().ensureContext().decodeAudioData(bytes instanceof ArrayBuffer ? bytes.slice(0) : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const original = this.original, buffer = await decodeEditorAudio(this.getAudio().ensureContext(), bytes);
     if (this.replacing) throw Error(t('audio-sources.sbf382b3'));
     if (original !== this.original) throw Error(t('audio-sources.sc28dea8'));
     const id = 'imported/' + ++this.serial; this.entries.set(id, { id, name, kind: 'imported', buffer, color: audioSourceColor(this.colorSerial++), offsetSeconds: 0 }); this.revision++; this.changed(); return id;

@@ -2,6 +2,7 @@ import { mediaType } from './files.mjs';
 import { pcmWave } from './pcm-wave.mjs';
 import { ResourceCache } from '../core/resource-cache.mjs';
 import { t } from '../i18n.mjs';
+import { decodeEditorAudio, nativeAudioWave } from './audio-decode.mjs';
 
 function loadMediaSource(media, url, name, signal) {
   return new Promise((resolve, reject) => {
@@ -59,11 +60,20 @@ export class AudioTransport {
       const media = new Audio(); media.preload = 'auto';
       let url = URL.createObjectURL(new Blob([bytes], { type: mediaType(name) }));
       try {
-        await loadMediaSource(media, url, name);
-        if (typeof context.decodeAudioData === 'function') {
-          try { decoded = await context.decodeAudioData(bytes.slice(0)); } catch { decoded = null; }
+        let fallbackWave;
+        try { await loadMediaSource(media, url, name); }
+        catch (error) {
+          if (revision !== this.loadRevision) throw error;
+          fallbackWave = await nativeAudioWave(bytes);
+          if (!fallbackWave || revision !== this.loadRevision) throw error;
+          URL.revokeObjectURL(url);
+          url = URL.createObjectURL(new Blob([fallbackWave], { type: 'audio/wav' }));
+          await loadMediaSource(media, url, name);
         }
-        if (decoded && revision === this.loadRevision) {
+        if (typeof context.decodeAudioData === 'function') {
+          try { decoded = fallbackWave ? await context.decodeAudioData(fallbackWave) : await decodeEditorAudio(context, bytes); } catch { decoded = null; }
+        }
+        if (!fallbackWave && decoded && revision === this.loadRevision) {
           let pcmUrl;
           try {
             const wave = await pcmWave(decoded, () => revision !== this.loadRevision);
@@ -83,7 +93,7 @@ export class AudioTransport {
         this.buffer = decoded ?? null; this.position = 0; return true;
       } catch (error) { media.removeAttribute('src'); media.load(); URL.revokeObjectURL(url); if (revision === this.loadRevision) throw error; return false; }
     }
-    decoded = await context.decodeAudioData(bytes.slice(0));
+    decoded = await decodeEditorAudio(context, bytes);
     if (revision !== this.loadRevision) return false;
     this.buffer = decoded;
     this.position = 0;

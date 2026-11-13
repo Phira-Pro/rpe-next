@@ -4,6 +4,7 @@ import { parseNoteSkin, serializeNoteSkinInfo, NOTE_SKIN_LIMITS } from '../core/
 import { assetUrl } from '../core/asset-url.mjs';
 import { nativeStorage, nativePackages } from './native.mjs';
 import { t } from '../i18n.mjs';
+import { decodeEditorAudio } from './audio-decode.mjs';
 
 async function access(mode, action) {
   const database = await openDatabase('rpe-next-note-skins', 1, (connection, transaction) => ensureStore(connection, transaction, 'packages', { keyPath: 'id' }));
@@ -23,7 +24,7 @@ export async function decodeNoteSkinSounds(record,context) {
   return new Map(await Promise.all([...record.sounds].map(async ([type,bytes])=>{
     let timer;
     try {
-      const buffer=await Promise.race([context.decodeAudioData(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)),new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error(t('note-skins.s36e604f'))),20000);})]);
+      const buffer=await Promise.race([decodeEditorAudio(context,bytes),new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error(t('note-skins.s36e604f'))),20000);})]);
       if(buffer.duration>120)throw new Error(t('note-skins.s70082a8'));
       return [type,buffer];
     } catch(error) {throw new Error(t('note-skins.sa93480a', { p0: type, p1: error.message }));}
