@@ -14,13 +14,8 @@ import { installNativePreview } from './preview.mjs';
 import { pt, translateProUi } from './locale.mjs';
 
 const host=globalThis.phiraEditor;
-let hostPoll;
-try {
-  await host.boot.wait(new Promise(resolve=>{const check=()=>{if(globalThis.rpenMods)resolve();};hostPoll=setInterval(check,25);check();}),'正在初始化制谱器');
-} finally { clearInterval(hostPoll); }
-const {editor,manager,runtime}=globalThis.rpenMods;
-await host.boot.wait(Promise.all([manager.ready,editor.startupReady]),'正在准备谱面库、皮肤和扩展');
-await host.boot.wait(document.fonts.ready,'正在准备界面字体');
+// app.mjs has completed its required storage and editor setup by this point.
+const {editor,runtime}=globalThis.rpenMods;
 document.body.classList.add('phira-editor');
 // Keep the mobile settings overview visible until the search field is tapped.
 if(matchMedia('(pointer:coarse)').matches){const title=document.querySelector('#settings-title');title.tabIndex=-1;title.autofocus=true;}
@@ -29,7 +24,7 @@ const buttons=[];
 const action=(label,fn,options={})=>{const button=document.createElement('button');button.type='button';button.textContent=pt(label);button.title=pt(options.title??label);button.onclick=async()=>{try{await fn();}catch(error){report(error);}};buttons.push(button);return button;};
 const report=error=>{status.textContent=error.message;editor.notify(error.message,'error');};
 installFolders(report);
-await installLinkedMigration(host);
+installLinkedMigration(host).catch(report);
 let busy=false,suspended=false,closed=false;
 const setBusy=value=>{busy=value;for(const button of buttons)button.disabled=value;};
 const save=async()=>{if(editor.hasDocument){await editor.save();if(editor.dirty)throw Error('工程仍有未保存修改，请保存后重试');}await flushLocalPreferences();};
@@ -122,5 +117,4 @@ async function control(){
   setTimeout(control,suspended?500:350);
 }
 control();
-await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 host.boot.ready();

@@ -1849,7 +1849,7 @@ function renderHistoryPanel() {
   const host = element('#history-results'); if (!host) return;
   host.replaceChildren();
   const history = session.history; const current = history.undoStack.length;
-  const entries = [{ label: t('app.sc43a712'), index: 0 }, ...history.undoStack.map((command, index) => ({ label: command.label, index: index + 1 })), ...history.redoStack.toReversed().map((command, index) => ({ label: command.label, index: current + index + 1 }))];
+  const entries = [{ label: t('app.sc43a712'), index: 0 }, ...history.undoStack.map((command, index) => ({ label: command.label, index: index + 1 })), ...history.redoStack.slice().reverse().map((command, index) => ({ label: command.label, index: current + index + 1 }))];
   for (const entry of entries) {
     const button = document.createElement('button'); button.type = 'button'; button.className = entry.index === current ? 'active' : ''; button.textContent = `${entry.index === current ? '● ' : ''}${entry.index} · ${entry.label}`;
     button.onclick = async () => { try { const direction = entry.index < current ? 'undo' : 'redo'; for (let count = 0; count < Math.abs(entry.index - current); count++) { travel(direction, true); await session.largeDocument?.flush(); } renderHistoryPanel(); notify(t('app.sf2d283b', { p0: entry.index }), 'success', 1800); } catch (error) { reportError(error); } };

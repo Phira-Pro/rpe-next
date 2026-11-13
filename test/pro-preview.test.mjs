@@ -5,7 +5,7 @@ import { setLocale, t, BUILTIN_LOCALES } from '../src/i18n.mjs';
 import { pt } from '../pro/locale.mjs';
 import { readFile } from 'node:fs/promises';
 import { rewriteModModule, resolveModImport } from '../src/core/mod-package.mjs';
-import { restoreNativeLocale } from '../pro/entry.mjs';
+import { restoreNativeLocale, startEditor } from '../pro/entry.mjs';
 
 test('native frame transport validates size and exposes bottom-up RGBA without copying', () => {
   const buffer = new ArrayBuffer(16 + 64 * 64 * 4), view = new DataView(buffer);
@@ -26,6 +26,21 @@ test('a fresh host origin restores native language before importing interface mo
   await restoreNativeLocale(host,api); assert.equal(storage.get('rpe-next-locale-v1'),'ja-JP');
   host.request=async()=>({result:null}); await restoreNativeLocale(host,api); assert.equal(storage.size,0);
   host.request=async()=>{throw Error('Unavailable')}; await assert.rejects(restoreNativeLocale(host,api),/Unavailable/);
+});
+
+test('a locale lookup that completes after the startup deadline cannot block or change the active locale', async context => {
+  context.mock.method(console, 'warn', () => {});
+  let finish;
+  const host = {
+    request: () => new Promise(resolve => { finish = resolve; }),
+    boot: { wait: (task, _, timeout) => timeout === 4000 ? Promise.reject(Error('timeout')) : task },
+  };
+  let writes = 0;
+  const storage = { setItem() { writes++; }, removeItem() { writes++; } };
+  assert.equal(await startEditor(host, storage, async () => 'loaded'), 'loaded');
+  finish({result:{data:{values:{'rpe-next-locale-v1':'ja-JP'}}}});
+  await Promise.resolve();
+  assert.equal(writes, 0);
 });
 
 test('Classic translations resolve through the allowed shared locale interface', async () => {

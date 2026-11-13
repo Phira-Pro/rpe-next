@@ -16,6 +16,7 @@ const button=(value,run)=>{const node=document.createElement('button');node.type
 export class ModManager {
   constructor(editor,{notify,invalidate}){
     Object.assign(this,{editor,notify,invalidate});this.records=new Map();this.errors=new Map();const options=read(OPTIONS,{});this.options=Object.assign(Object.create(null),object(options)?options:{});this.desired=new Set(Array.isArray(read(ENABLED,[]))?read(ENABLED,[]):[]);this.selected=null;this.busy=false;
+    this.safe=new URL(location.href).searchParams.get('mods')==='off';
     this.runtime=new ModRuntime({editor,notify,invalidate,changed:()=>this.updateStatus()});this.runtime.emergency=()=>this.disableAll(true);this.runtime.installInput();
     this.render();document.querySelector('#mods-open').onclick=()=>this.open();document.querySelector('#mods-status').onclick=()=>this.open();
     window.rpenMods={apiVersion:MOD_API_VERSION,editor,runtime:this.runtime,manager:this,resolveModule:(...args)=>this.runtime.resolveModule(...args),disableAll:()=>this.disableAll(true)};installModApi(window.rpenMods);this.skinLayout=new BuiltinSkinLayout(this);this.ready=this.load();this.skinLayout.start();
@@ -23,11 +24,11 @@ export class ModManager {
   async load(){
     this.runtime.events.addEventListener('mod:unloaded',event=>{const {id,reason,error}=event.detail;if(reason==='error'){this.errors.set(id,error);this.desired.delete(id);this.persist();this.notify(t('mod-manager.s86b2076')+id+t('mod-manager.s2112669'),'warning');if(this.dialog.open)this.renderList();}const loaded=[...this.runtime.loaded.values()].filter(state=>state.record.manifest.dependencies.includes(id));for(const state of loaded)this.disable(state.id).catch(error=>this.notify(error.message,'error'));});
     try{
+      const safe=this.safe, interrupted=read(BOOT,null);
+      if(safe||interrupted){this.safe=true;this.banner.textContent=safe?t('mod-manager.se5ac3ae'):t('mod-manager.s7363c83');this.notify(this.banner.textContent,'warning');if(interrupted)localPreferences.removeItem(BOOT);}
       for(const record of await builtinMods())this.records.set(record.manifest.id,record);
       for(const stored of await readMods())try{const record=parseModPackage(new Map(stored.files));if(!this.records.has(record.manifest.id))this.records.set(record.manifest.id,record);}catch(error){this.errors.set(stored.id,error.message);}
-      const safe=new URL(location.href).searchParams.get('mods')==='off';const interrupted=read(BOOT,null);
-      if(safe||interrupted){this.safe=true;this.banner.textContent=safe?t('mod-manager.se5ac3ae'):t('mod-manager.s7363c83');this.notify(this.banner.textContent,'warning');localPreferences.removeItem(BOOT);}
-      else {for(const id of [...this.desired])if(this.records.has(id))try{if(!this.skinLayout.isCompanion(id))await this.enable(id,false);}catch(error){this.desired.delete(id);this.errors.set(id,error.message);this.notify(t('mod-manager.s10851d3', { p0: id, p1: error.message }),'error');}else this.desired.delete(id);this.persist();}
+      if(!this.safe){for(const id of [...this.desired])if(this.records.has(id))try{if(!this.skinLayout.isCompanion(id))await this.enable(id,false);}catch(error){this.desired.delete(id);this.errors.set(id,error.message);this.notify(t('mod-manager.s10851d3', { p0: id, p1: error.message }),'error');}else this.desired.delete(id);this.persist();}
       this.updateStatus();this.renderList();
     }catch(error){this.banner.textContent=t('mod-manager.s39621fa')+error.message;this.notify(this.banner.textContent,'warning');}
   }
